@@ -1,0 +1,13 @@
+#JSON files
+bibkg_2.json
+bibkgtest.json
+bibkgtest2.json
+latest-all.json.gz
+wikidata_else.json
+wikidata_person_washington_original.json
+wikidata_person_washington.json
+wikidata_person.json
+wikidata_scholar.json
+
+#dump file
+milleDB.dump
