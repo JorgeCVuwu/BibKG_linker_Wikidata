@@ -25,10 +25,6 @@ def filter_id(entity, dict):
     claims = entity['claims']        
     for llave in claims:
         valores = claims[llave]
-        # if llave == 'P735': #given name
-        #     human_dict['P735'] = valores
-        # if llave == 'P734': #family name
-        #     human_dict['P734'] = valores
         for valor in valores:
             datatype = valor['mainsnak']['datatype']
             if datatype == "external-id":
@@ -65,7 +61,7 @@ def write_entities(file, entity, empty):
     return empty
                         
 
-path = "latest-all.json.gz"
+path = "./latest-all.json.gz"
 c = 0
 len_wikidata = 100000000
 
@@ -117,7 +113,7 @@ count_human = 0
 count_scholar = 0
 count_other = 0
 
-#limit = 100000
+limit = 10
 inicio = time.time()
 
 
@@ -195,8 +191,9 @@ with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, 
                 # print(f"Ocurrió un error de tipo {type(e).__name__}")
                 pass
         c += 1
-        #if c >= limit:
-        #    break
+        if limit:
+            if c >= limit:
+                break
     wikidata_person.write(']')
     wikidata_scholar.write(']')
     wikidata_else.write(']')
