@@ -113,7 +113,7 @@ count_human = 0
 count_scholar = 0
 count_other = 0
 
-limit = 10
+limit = 100000
 inicio = time.time()
 
 
