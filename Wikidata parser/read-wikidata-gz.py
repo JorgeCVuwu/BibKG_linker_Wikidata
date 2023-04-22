@@ -3,6 +3,7 @@ import json
 import time
 import ujson
 import os
+import csv
 
 def filter_name(entity):
     if "en" in entity['labels']:
@@ -38,7 +39,7 @@ def filter_instances(instances, filtros):
             return True
     return False
 
-def write_entities(file, entity, empty):
+def write_entities(file, entity, name, empty):
     if not empty:
         file.write(",")
         file.write("\n")                   
@@ -59,41 +60,64 @@ def write_entities(file, entity, empty):
     ujson.dump(entity, file)
     empty = False
     return empty
+
+def replaceWikidataHeader(lista):
+    string = 'http://www.wikidata.org/entity/'
+    return [elemento.replace(string, '') for elemento in lista if elemento.startswith(string)]
+
+def readCSV(path):
+    columna = 0
+    filter_list = []
+    with open(path, mode='r') as archivo_csv:
+        lector_csv = csv.reader(archivo_csv)
+        for fila in lector_csv:
+            elemento = fila[columna]
+            filter_list.append(elemento)
+
+    return filter_list
+
+def filter_scholar(instances_list, publication_filter, event_filter, venue_filter, other_filters_properties_not):
+    valid = False
+    for llave in instances_list:
+        if llave in other_filters_properties_not:
+            return False
+        if llave in publication_filter or llave in event_filter or llave in venue_filter:
+            valid = True
+    return valid
+
                         
 
 path = "./latest-all.json.gz"
 c = 0
 len_wikidata = 100000000
 
+folder = 'Wikidata parser/data/'
+
+publication_path = folder + 'query_publication_dblp.csv'
+publication_filter = readCSV(publication_path)
+publication_filter = replaceWikidataHeader(publication_filter)
+
+event_path = folder + 'query_event_dblp.csv'
+event_filter = readCSV(event_path)
+event_filter = replaceWikidataHeader(event_filter)
+
+venue_path = folder + 'query_venue_dblp.csv'
+venue_filter = readCSV(venue_path)
+venue_filter = replaceWikidataHeader(venue_filter)
+
 human = 'Q5'
+author_path = folder + 'query_author_dblp.csv'
+author_filter = [human]
 
-scholar_article = 'Q13442814'
-chapter = 'Q1980247'
-written_work = 'Q47461344'
-conference_paper = 'Q23927052'
-scientific_conference_paper = 'Q10885494'
-scientific_conference_series = 'Q47258130'
-scientific_journal = 'Q5633421'
-publication = 'Q732577'
-proceedings = 'Q1143604'
-academic_conference = 'Q2020153'
-academic_journal = ''
+discarded_properties_path = folder + 'discarded_properties.csv'
+other_filters_properties_not = readCSV(discarded_properties_path)[1:]
 
-publication_filter = [scholar_article, chapter, written_work, scientific_conference_paper, conference_paper, scientific_journal, scientific_conference_series, publication, proceedings, academic_conference]
+# Imprime los datos leídos del archivo CSV
 
 author = 'P50'
 author_name_string = 'P2093'
 
-PubMed_ID = 'P698'
-apparent_magnitude = 'P1215'
-PMCID = 'P932'
-astronomical_filter = 'P1227'
-SIMBAD_ID = 'P3083'
-
 other_filters_properties = [author]
-
-other_filters_properties_not = [PubMed_ID, PMCID, apparent_magnitude, astronomical_filter, SIMBAD_ID]
-
 
 occurrence = 'Q1190554'
 taxon = 'Q16521'
@@ -175,15 +199,15 @@ with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, 
                     #break     
 
                 #Procesar scholar_articles o relacionados directos de Wikidata           
-                elif filter_instances(instances_list, publication_filter):
-                    empty_scholar = write_entities(wikidata_scholar, entity, empty_scholar)
+                elif filter_scholar(instances_list, publication_filter, event_filter, venue_filter, other_filters_properties_not):
+                    empty_scholar = write_entities(wikidata_scholar, entity, name, empty_scholar)
                     count_scholar += 1
                     #break
 
                 #Procesar otras entidades de Wikidata    
                 elif (filter_instances(claims, other_filters_properties)) and (not filter_instances(instances_list, other_filters_instances)):
                     if (not filter_instances(claims, other_filters_properties_not)):
-                        empty_other = write_entities(wikidata_else, entity, empty_other)
+                        empty_other = write_entities(wikidata_else, entity, name, empty_other)
                         count_other += 1
 
             except Exception as e:
@@ -215,6 +239,24 @@ print("Número de personas: {}".format(count_human))
 print("Número de scholar articles: {}".format(count_scholar))
 print("Número de entidades en el archivo 3: {}".format(count_other))
 
+
+
 # print(id)
 # print(name)
 # print(ins)
+
+data = [
+    ['time_seconds', 'time_hours', 'total_entities', 'person_entities', 'scholarly_entities', 'other_entities'],
+    [tiempo, tiempo/3600, c, count_human, count_scholar, count_other]
+]
+metadata_path = folder + 'wikidata-parser-metadata.csv'
+with open(metadata_path, mode='w', newline='') as archivo_csv:
+    
+    # Crea el objeto de escritura de CSV
+    writer = csv.writer(archivo_csv)
+    
+    # Escriba los datos en el archivo CSV
+    for fila in data:
+        writer.writerow(fila)
+
+print("Metadatos guardados.")
