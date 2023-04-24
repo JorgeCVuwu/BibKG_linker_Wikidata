@@ -6,31 +6,46 @@ import os
 import csv
 
 def filter_name(entity):
-    if "en" in entity['labels']:
-        name = entity['labels']['en']['value']
+    labels = entity['labels']
+    if "en" in labels:
+        name = {'en':labels['en']}
+        #name = entity['labels']['en']['value']
     else:
-        name = entity['labels']
+        name = labels
     return name
 
 def filter_descriptions(entity):
     try:
-        if "en" in entity['descriptions']:
-            description = entity['descriptions']['en']['value']
+        descriptions = entity['descriptions']
+        if "en" in descriptions:
+            description = {'en':descriptions['en']}
+            #description = entity['descriptions']['en']['value']
         else:
-            description = entity['descriptions']
+            description = descriptions
         return description
     except:
         return None
 
 def filter_id(entity, dict):
+    dict['claims'] = {}
     claims = entity['claims']        
     for llave in claims:
         valores = claims[llave]
-        for valor in valores:
-            datatype = valor['mainsnak']['datatype']
+        for objeto in valores:
+            valor = objeto['mainsnak']
+            datatype = valor['datatype']
             if datatype == "external-id":
-                dict[llave] = valores
-                break
+                if llave not in dict['claims']:
+                    dict['claims'][llave] = []
+                mainsnak = {"datatype":valor["datatype"]}
+                if valor['snaktype'] == "value":
+                    datavalue = reduce_datavalue(valor['datavalue'])
+                    mainsnak["datavalue"] = datavalue
+                new_object = {'mainsnak':mainsnak, 'rank':objeto['rank']}
+                # if "qualifiers" in valor:
+                #     new_object['qualifiers':valor['qualifiers']]
+                dict['claims'][llave].append(new_object)
+                
     return dict
 
 def reduce_datavalue(datavalue):
@@ -46,8 +61,6 @@ def reduce_datavalue(datavalue):
         return {'value':{'time':value['time'], 'precision':value['precision']}, 'type':type}
     else:
         return datavalue
-
-
 
 def reduce_entity(entity):
     claims = entity['claims']
@@ -77,8 +90,8 @@ def reduce_entity(entity):
                 datavalue = reduce_datavalue(valor['datavalue'])
                 mainsnak["datavalue"] = datavalue
             new_object = {'mainsnak':mainsnak, 'rank':objeto['rank']}
-            if "qualifiers" in valor:
-                new_object['qualifiers':valor['qualifiers']]
+            # if "qualifiers" in objeto:
+            #     new_object['qualifiers':objeto['qualifiers']]
             entity['claims'][llave][i] = new_object
 
     return entity
@@ -194,17 +207,17 @@ inicio = time.time()
 
 carpeta_externa = "D:\Memoria" 
 
-wikidata_person_file = "wikidata_person2.json"
-wikidata_scholar_file = "wikidata_scholar2.json"
-wikidata_else_file = "wikidata_else2.json"
+wikidata_person_file = "wikidata_person.json"
+wikidata_scholar_file = "wikidata_scholar.json"
+wikidata_else_file = "wikidata_else.json"
 
 wikidata_person_url = os.path.join(carpeta_externa, wikidata_person_file)
 wikidata_scholar_url = os.path.join(carpeta_externa, wikidata_scholar_file)
 wikidata_else_url = os.path.join(carpeta_externa, wikidata_else_file)
 
-wikidata_person_url = wikidata_person_file
-wikidata_scholar_url = wikidata_scholar_file
-wikidata_else_url = wikidata_else_file
+# wikidata_person_url = wikidata_person_file
+# wikidata_scholar_url = wikidata_scholar_file
+# wikidata_else_url = wikidata_else_file
 
 with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, "w") as wikidata_person, open(wikidata_scholar_url, "w") as wikidata_scholar, open(wikidata_else_url, "w") as wikidata_else:
     wikidata_person.write("[")
@@ -250,6 +263,7 @@ with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, 
                     if description:  
                         human_dict['description'] = description
                     human_dict = filter_id(entity, human_dict)
+                    #human_dict = reduce_entity(human_dict)
                     ujson.dump(human_dict, wikidata_person)
                     empty_person = False
                     count_human += 1
