@@ -33,6 +33,56 @@ def filter_id(entity, dict):
                 break
     return dict
 
+def reduce_datavalue(datavalue):
+    type = datavalue['type']
+    if type == "string":
+        return datavalue
+    elif type == "wikibase-entityid":
+        return {'value':datavalue['value']['id'], 'type':type}
+    elif type == "globecoordinate" or type == "quantity":
+        return None
+    elif type == "time":
+        value = datavalue['value']
+        return {'value':{'time':value['time'], 'precision':value['precision']}, 'type':type}
+    else:
+        return datavalue
+
+
+
+def reduce_entity(entity):
+    claims = entity['claims']
+    # if claims['rank'] == 'deprecated':
+    #     return None
+    try:
+        del entity['claims']['id']
+    except:
+        pass
+    try:
+        del entity['claims']['references']
+    except:
+        pass
+    for llave in claims:
+        valores = claims[llave]
+        n = len(valores)
+        #print(valores)
+        for i in range(n):
+            objeto = valores[i]
+            # if objeto['rank'] == 'deprecated':
+            #     del entity['claims'][llave][i]
+            #     del_count += 1
+            #else:
+            valor = objeto['mainsnak']
+            mainsnak = {"datatype":valor["datatype"]}
+            if valor['snaktype'] == "value":
+                datavalue = reduce_datavalue(valor['datavalue'])
+                mainsnak["datavalue"] = datavalue
+            new_object = {'mainsnak':mainsnak, 'rank':objeto['rank']}
+            if "qualifiers" in valor:
+                new_object['qualifiers':valor['qualifiers']]
+            entity['claims'][llave][i] = new_object
+
+    return entity
+
 def filter_instances(instances, filtros):
     for llave in instances:
         if llave in filtros:
@@ -57,6 +107,7 @@ def write_entities(file, entity, name, empty):
     if description:                     
         entity['description'] = description
         del entity['descriptions']
+    entity = reduce_entity(entity)
     ujson.dump(entity, file)
     empty = False
     return empty
@@ -137,19 +188,23 @@ count_human = 0
 count_scholar = 0
 count_other = 0
 
-limit = 100000
+limit = False
 inicio = time.time()
 
 
 carpeta_externa = "D:\Memoria" 
 
-wikidata_person_file = "wikidata_person.json"
-wikidata_scholar_file = "wikidata_scholar.json"
-wikidata_else_file = "wikidata_else.json"
+wikidata_person_file = "wikidata_person2.json"
+wikidata_scholar_file = "wikidata_scholar2.json"
+wikidata_else_file = "wikidata_else2.json"
 
 wikidata_person_url = os.path.join(carpeta_externa, wikidata_person_file)
 wikidata_scholar_url = os.path.join(carpeta_externa, wikidata_scholar_file)
 wikidata_else_url = os.path.join(carpeta_externa, wikidata_else_file)
+
+wikidata_person_url = wikidata_person_file
+wikidata_scholar_url = wikidata_scholar_file
+wikidata_else_url = wikidata_else_file
 
 with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, "w") as wikidata_person, open(wikidata_scholar_url, "w") as wikidata_scholar, open(wikidata_else_url, "w") as wikidata_else:
     wikidata_person.write("[")
@@ -166,18 +221,20 @@ with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, 
         if line.endswith(","):
             line = line[:-1]
         entity = ujson.loads(line)
-
-        # do your processing here
-        #print(str(entity))
-        if entity:# and c < limit:
-            try:
+        try:
+            # do your processing here
+            #print(str(entity))
+            if entity:# and c < limit:
                 add_person = False
                 add_scholar = False
                 add_else = False
                 id = entity['id']
                 name = filter_name(entity)
                 claims = entity['claims']
-                instances = claims['P31']
+                try:
+                    instances = claims['P31']
+                except:
+                    continue
                 instances_list = []
                 for instance in instances:
                     instance_value = instance['mainsnak']['datavalue']['value']['id']
@@ -200,6 +257,7 @@ with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, 
 
                 #Procesar scholar_articles o relacionados directos de Wikidata           
                 elif filter_scholar(instances_list, publication_filter, event_filter, venue_filter, other_filters_properties_not):
+                    #print('a')
                     empty_scholar = write_entities(wikidata_scholar, entity, name, empty_scholar)
                     count_scholar += 1
                     #break
@@ -209,15 +267,14 @@ with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, 
                     if (not filter_instances(claims, other_filters_properties_not)):
                         empty_other = write_entities(wikidata_else, entity, name, empty_other)
                         count_other += 1
-
-            except Exception as e:
-                # print(e)
-                # print(f"Ocurrió un error de tipo {type(e).__name__}")
-                pass
+        except:
+            pass
         c += 1
         if limit:
             if c >= limit:
                 break
+        if c%10000000 == 0:
+            print(c/100000000)
     wikidata_person.write(']')
     wikidata_scholar.write(']')
     wikidata_else.write(']')
@@ -249,7 +306,7 @@ data = [
     ['time_seconds', 'time_hours', 'total_entities', 'person_entities', 'scholarly_entities', 'other_entities'],
     [tiempo, tiempo/3600, c, count_human, count_scholar, count_other]
 ]
-metadata_path = folder + 'wikidata-parser-metadata.csv'
+metadata_path = folder + 'wikidata-parser-metadata-2.csv'
 with open(metadata_path, mode='w', newline='') as archivo_csv:
     
     # Crea el objeto de escritura de CSV
