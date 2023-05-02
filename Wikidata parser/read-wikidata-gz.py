@@ -15,6 +15,7 @@ def filter_name(entity):
     return name
 
 def filter_descriptions(entity):
+    #return filter_languages(entity, "descriptions")
     try:
         descriptions = entity['descriptions']
         if "en" in descriptions:
@@ -23,6 +24,29 @@ def filter_descriptions(entity):
         else:
             description = descriptions
         return description
+    except:
+        return None
+    
+def filter_aliases(entity):
+    #return filter_languages(entity, "aliases")
+    try:
+        aliases = entity['aliases']
+        if "en" in aliases:
+            alias = {'en':aliases['en']}
+        else:
+            alias = aliases
+        return alias
+    except:
+        return None
+    
+def filter_languages(entity, key):
+    try:
+        aliases = entity[key]
+        if "en" in aliases:
+            alias = {'en':aliases['en']}
+        else:
+            alias = aliases
+        return alias
     except:
         return None
 
@@ -55,7 +79,7 @@ def reduce_datavalue(datavalue):
     elif type == "wikibase-entityid":
         return {'value':datavalue['value']['id'], 'type':type}
     elif type == "globecoordinate" or type == "quantity":
-        return None
+        return {}
     elif type == "time":
         value = datavalue['value']
         return {'value':{'time':value['time'], 'precision':value['precision']}, 'type':type}
@@ -104,7 +128,7 @@ def filter_instances(instances, filtros):
 
 def write_entities(file, entity, name, empty):
     if not empty:
-        file.write(",")
+        #file.write(",")
         file.write("\n")                   
     entity['name'] = name
     del entity['labels']
@@ -113,7 +137,7 @@ def write_entities(file, entity, name, empty):
     except:
         pass
     try:
-        del entity['aliases']
+        entity['aliases'] = filter_aliases(entity)
     except:
         pass
     description = filter_descriptions(entity)
@@ -183,7 +207,7 @@ author_name_string = 'P2093'
 
 other_filters_properties = [author]
 
-occurrence = 'Q1190554'
+occurrence = 'Q1190554' #analizar a posteriori
 taxon = 'Q16521'
 adm_territorial = 'Q56061'
 arquitectural_estructure = 'Q811979'
@@ -207,9 +231,9 @@ inicio = time.time()
 
 carpeta_externa = "D:\Memoria" 
 
-wikidata_person_file = "wikidata_person.json"
-wikidata_scholar_file = "wikidata_scholar.json"
-wikidata_else_file = "wikidata_else.json"
+wikidata_person_file = "wikidata_person_2.json"
+wikidata_scholar_file = "wikidata_scholar_2.json"
+wikidata_else_file = "wikidata_else_2.json"
 
 wikidata_person_url = os.path.join(carpeta_externa, wikidata_person_file)
 wikidata_scholar_url = os.path.join(carpeta_externa, wikidata_scholar_file)
@@ -220,9 +244,9 @@ wikidata_else_url = os.path.join(carpeta_externa, wikidata_else_file)
 # wikidata_else_url = wikidata_else_file
 
 with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, "w") as wikidata_person, open(wikidata_scholar_url, "w") as wikidata_scholar, open(wikidata_else_url, "w") as wikidata_else:
-    wikidata_person.write("[")
-    wikidata_scholar.write("[")
-    wikidata_else.write("[")
+    # wikidata_person.write("[")
+    # wikidata_scholar.write("[")
+    # wikidata_else.write("[")
     empty_person = True
     empty_scholar = True
     empty_other = True
@@ -237,7 +261,7 @@ with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, 
         try:
             # do your processing here
             #print(str(entity))
-            if entity:# and c < limit:
+            if entity:
                 add_person = False
                 add_scholar = False
                 add_else = False
@@ -256,7 +280,7 @@ with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, 
                 #Procesar personas de Wikidata
                 if human in instances_list:
                     if not empty_person:
-                        wikidata_person.write(",")
+                        #wikidata_person.write(",")
                         wikidata_person.write("\n")
                     human_dict = {'id':id, 'name':name}
                     description = filter_descriptions(entity)
@@ -277,7 +301,7 @@ with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, 
                     #break
 
                 #Procesar otras entidades de Wikidata    
-                elif (filter_instances(claims, other_filters_properties)) and (not filter_instances(instances_list, other_filters_instances)):
+                elif (not filter_instances(instances_list, other_filters_instances)):
                     if (not filter_instances(claims, other_filters_properties_not)):
                         empty_other = write_entities(wikidata_else, entity, name, empty_other)
                         count_other += 1
@@ -289,9 +313,9 @@ with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, 
                 break
         if c%10000000 == 0:
             print(c/100000000)
-    wikidata_person.write(']')
-    wikidata_scholar.write(']')
-    wikidata_else.write(']')
+    # wikidata_person.write(']')
+    # wikidata_scholar.write(']')
+    # wikidata_else.write(']')
 
 fin = time.time()
 tiempo = fin - inicio
@@ -320,7 +344,7 @@ data = [
     ['time_seconds', 'time_hours', 'total_entities', 'person_entities', 'scholarly_entities', 'other_entities'],
     [tiempo, tiempo/3600, c, count_human, count_scholar, count_other]
 ]
-metadata_path = folder + 'wikidata-parser-metadata-2.csv'
+metadata_path = folder + 'wikidata-parser-metadata-2-1.csv'
 with open(metadata_path, mode='w', newline='') as archivo_csv:
     
     # Crea el objeto de escritura de CSV
