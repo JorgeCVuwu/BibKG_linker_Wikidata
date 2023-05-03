@@ -231,9 +231,9 @@ inicio = time.time()
 
 carpeta_externa = "D:\Memoria" 
 
-wikidata_person_file = "wikidata_person_2.json"
-wikidata_scholar_file = "wikidata_scholar_2.json"
-wikidata_else_file = "wikidata_else_2.json"
+wikidata_person_file = "wikidata_person_3.json"
+wikidata_scholar_file = "wikidata_scholar_3.json"
+wikidata_else_file = "wikidata_else_3.json"
 
 wikidata_person_url = os.path.join(carpeta_externa, wikidata_person_file)
 wikidata_scholar_url = os.path.join(carpeta_externa, wikidata_scholar_file)
@@ -344,7 +344,7 @@ data = [
     ['time_seconds', 'time_hours', 'total_entities', 'person_entities', 'scholarly_entities', 'other_entities'],
     [tiempo, tiempo/3600, c, count_human, count_scholar, count_other]
 ]
-metadata_path = folder + 'wikidata-parser-metadata-2-1.csv'
+metadata_path = folder + 'wikidata-parser-metadata-3.csv'
 with open(metadata_path, mode='w', newline='') as archivo_csv:
     
     # Crea el objeto de escritura de CSV
