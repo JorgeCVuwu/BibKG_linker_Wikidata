@@ -9,12 +9,14 @@ n = len(counts)
 with open("milleDB.dump", encoding="utf8") as file:
     for line in file:
        #print(line)
-       line_counts = tuple(map(line.count, (":Person", ":Article", ":Field", ":Journal", "wikidata:", "author_of")))
-       for i in range(n):
-           counts[i] += line_counts[i]
-       count = count + 1
-       if count < 100:
-            print(line)
+       if "a_Aidan_Hogan" in line and "Universidad de Chile" in line:
+           print(line)
+    #    line_counts = tuple(map(line.count, (":Person", ":Article", ":Field", ":Journal", "wikidata:", "author_of")))
+    #    for i in range(n):
+    #        counts[i] += line_counts[i]
+    #    count = count + 1
+    #    if count < 100:
+    #         print(line)
     #    if count > 100:
     #        break
        #print("\rporcentaje: " + str(round((count/total)*100, 2)) + "%", end='')
