@@ -1,11 +1,13 @@
 import json
 
-bibkg_p1_url = "bibkg10.json"
-bibkg_p2_url = "bibkg20.json"
+folder = "db/JSON/"
+
+bibkg_p1_url = folder + "bibkg10.json"
+bibkg_p2_url = folder + "bibkg20.json"
 
 parts_list = [bibkg_p1_url, bibkg_p2_url]
 
-new_bibkg_url = "bibkg.json"
+new_bibkg_url = folder + "bibkg.json"
 
 def merge_bibkg(parts_list, new_bibkg_url):
     c1 = 0

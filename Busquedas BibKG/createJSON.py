@@ -3,6 +3,8 @@ import time
 import re
 import traceback
 
+folder = "db/JSON/"
+
 
 def int_float(n):
     if n[-1:] == ".":
@@ -19,14 +21,14 @@ start = time.time()
 write_urls = ["bibkg_part1.json", "bibkg_part2.json", "bibkg_part3.json", "bibkg_part4.json"]
 
 # Abre un archivo en modo escritura
-input_url = "milleDB.dump"
-def read_and_write_file(input_url, write_urls, limit = 144000000):
+input_url = "db/milledb/milleDB.dump"
+def read_and_write_file(input_url, write_urls, folder, limit = 144000000):
     n_of_parts = len(write_urls)
     segment_size = limit/n_of_parts
     for z in range(n_of_parts):
         if z == 2:
             continue
-        write_url = write_urls[z]
+        write_url = write_urls[z] + folder
         with open(input_url, encoding="utf8") as milldb_file:
             count = 1
 
@@ -81,6 +83,7 @@ def read_and_write_file(input_url, write_urls, limit = 144000000):
                         if id not in bibkg_dictionary:
                             #bibkg_dictionary[links[0]] = {}
                             bibkg_dictionary[id] = {'id':id}
+                        property = property.lstrip(':')
                         if property != 'author_of':
                             if property not in bibkg_dictionary[id]:
                                 bibkg_dictionary[id][property] = []
@@ -178,4 +181,4 @@ def read_and_write_file(input_url, write_urls, limit = 144000000):
         print(count_actuals)
 
 
-read_and_write_file(input_url, write_urls)
+read_and_write_file(input_url, write_urls, folder)
