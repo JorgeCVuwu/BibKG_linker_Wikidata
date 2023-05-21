@@ -10,6 +10,8 @@ wikidata_else_name = "wikidata_else.json"
 wikidata_scholar_path = os.path.join(carpeta_externa, wikidata_scholar_name)
 wikidata_else_path = os.path.join(carpeta_externa, wikidata_else_name)
 
+count_doi = 0
+count_not_doi = 0
 
 with open(wikidata_scholar_path, 'r') as wikidata_scholar:
     for linea in wikidata_scholar:
@@ -17,6 +19,10 @@ with open(wikidata_scholar_path, 'r') as wikidata_scholar:
         id = entity['id']
         claims = entity['claims']
         linked = False
-        if id == "Q26883131":
-            print(entity)
-            break
+        if 'P356' in claims:
+            count_doi += 1
+        else:
+            count_not_doi += 1
+
+print(count_doi)
+print(count_not_doi)

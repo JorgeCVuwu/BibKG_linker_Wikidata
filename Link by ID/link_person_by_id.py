@@ -19,7 +19,7 @@ carpeta_externa = "D:\Memoria"
 wikidata_person_file = "wikidata_person_3.json"
 wikidata_scholar_file = "wikidata_scholar_3.json"
 wikidata_else_file = "wikidata_else_3.json"
-wikidata_filtered_person_file = "wikidata_person_filtered.json"
+wikidata_filtered_person_file = "wikidata_person.json"
 
 wikidata_person_csv_file = "wikidata_person_counts.csv"
 
@@ -63,24 +63,24 @@ count_links_orcid = 0
 count_links_scholar = 0
 count_not_links = 0
 
-# with open(wikidata_person_url, 'r') as wikidata_person:
-#     for linea in wikidata_person:
-#         entity = json.loads(linea)
-#         id = entity['id']
-#         claims = entity['claims'].items()
-#         for key, content in claims:
-#             try:
-#                 content = content[0]['mainsnak']['datavalue']['value']
-#                 if key == property_dblp:
-#                     wikidata_dblp_dict[content] = id
-#                 if key == property_orcid:
-#                     wikidata_orcid_dict[content] = id
-#                 if key == property_scholar:
-#                     wikidata_scholar_dict[content] = id
-#             except:
-#                 pass
+with open(wikidata_person_url, 'r') as wikidata_person:
+    for linea in wikidata_person:
+        entity = json.loads(linea)
+        id = entity['id']
+        claims = entity['claims'].items()
+        for key, content in claims:
+            try:
+                content = content[0]['mainsnak']['datavalue']['value']
+                if key == property_dblp:
+                    wikidata_dblp_dict[content] = id
+                if key == property_orcid:
+                    wikidata_orcid_dict[content] = id
+                if key == property_scholar:
+                    wikidata_scholar_dict[content] = id
+            except:
+                pass
 
-# print("Wikidata cargado")
+print("Wikidata cargado")
 
 count_url = 0
 
@@ -91,28 +91,28 @@ with open(bibkg_url, 'r') as bibkg:
         if 'has_author' in entity:
             count_url += 1
             #print(entity)
-        # if 'type' in entity:
-        #     if entity['type'] == 'Person':
-        #         count_person += 1
-        #         is_person = True
-        # if 'wikidata' in entity:
-        #     continue
-        # elif property_bibkg_dblp in entity:
-        #     if process_wikidata_dblp_id(entity[property_bibkg_dblp]) in wikidata_dblp_dict:
-        #         count_links += 1
-        #         count_links_dblp += 1
-        # elif property_bibkg_orcid in entity:
-        #     if entity[property_bibkg_orcid] in wikidata_orcid_dict:
-        #         count_links += 1
-        #         count_links_orcid += 1
+        if 'type' in entity:
+            if entity['type'] == 'Person':
+                count_person += 1
+                is_person = True
+        if 'wikidata' in entity:
+            continue
+        elif property_bibkg_dblp in entity:
+            if process_wikidata_dblp_id(entity[property_bibkg_dblp]) in wikidata_dblp_dict:
+                count_links += 1
+                count_links_dblp += 1
+        elif property_bibkg_orcid in entity:
+            if entity[property_bibkg_orcid] in wikidata_orcid_dict:
+                count_links += 1
+                count_links_orcid += 1
         
-        # elif property_bibkg_scholar in entity:
-        #     if entity[property_bibkg_scholar] in wikidata_scholar_dict:
-        #         count_links += 1
-        #         count_links_scholar += 1
+        elif property_bibkg_scholar in entity:
+            if entity[property_bibkg_scholar] in wikidata_scholar_dict:
+                count_links += 1
+                count_links_scholar += 1
 
-        # elif is_person:
-        #     count_not_links += 1
+        elif is_person:
+            count_not_links += 1
 
 print(count_url)
 print("Total person: {}".format(count_person))

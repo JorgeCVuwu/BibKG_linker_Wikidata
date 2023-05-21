@@ -66,13 +66,10 @@ with open(bibkg_url, 'r') as bibkg:
         if 'type' in entity:
             type = entity['type']
             id = entity['id']
-            if ':url' in entity:
-                if process_dblp_url(entity, dblp_dict) != False:
-                    count_url_dblp += 1
-                    if type not in type_count_dict:
-                        type_count_dict[type] = 0
-                    type_count_dict[type] += 1
-                count_url += 1
+            if 'key' in entity:
+                print(entity)
+            if ':key' in entity:
+                print("BBBBBBBBB")
         c1 += 1
 fin = time.time()
 print(count_url)

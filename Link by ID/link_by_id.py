@@ -7,14 +7,16 @@ from urllib.parse import urlparse
 json_folder = "db/JSON/"
 carpeta_externa = "D:\Memoria" 
 wikidata_scholar_name = "wikidata_scholar.json"
+wikidata_person_name = "wikidata_person.json"
 wikidata_else_name = "wikidata_else.json"
 
+wikidata_person_path = os.path.join(carpeta_externa, wikidata_person_name)
 bibkg_path = json_folder + "bibkg.json"
 bibkg_linked_path = json_folder + "bibkg linked by id.json"
 wikidata_scholar_path = os.path.join(carpeta_externa, wikidata_scholar_name)
 wikidata_else_path = os.path.join(carpeta_externa, wikidata_else_name)
 
-#publication, 
+#publication properties
 dblp_properties = ['P8978', 'P8926', 'P10692']
 doi_property_w = 'P356'
 arxiv_property_w = 'P818'
@@ -23,11 +25,13 @@ handle_property_w = 'P1184'
 dnb_property_w = 'P1292'
 acm_properties_w = ['P2179','P3332','P3333']
 ethos_property_w = 'P4536'
+isbn_properties = ['P957', 'P212']
 
-scholarly_equivalent_properties = {'P496':'orcid', 'P1960':'scholar'}
+#person properties
+dblp_author_property = 'P2456'
+orcid_property = 'P496'
+google_scholar_property = 'P1960'
 
-
-person_equivalent_properties = {}
 
 def detect_page(url):
     parsed_url = urlparse(url)
@@ -39,6 +43,9 @@ def detect_page(url):
         page_prefix = ""
         page_suffix = url
     return page_prefix, page_suffix
+
+def add_to_dict(dict, suffix, id):
+    dict[suffix] = id
 
 def process_dblp_url(entity, dblp_dict):
     #print(url)
@@ -56,41 +63,60 @@ def process_dblp_url(entity, dblp_dict):
     else:
         url_name = url_last.replace(".html", "")
     dblp_id = url1 + url_name
-    dblp_dict[dblp_id] = id
+     #dblp_dict[dblp_id] = id
+    add_to_dict(dblp_dict, dblp_id, id)
 
 def process_doi(id, ee, doi_dict):
     doi_prefix = 'doi.org/'
     doi_suffix = ee.split(doi_prefix, 1)[1]
-    doi_dict[doi_suffix] = id
+    #doi_dict[doi_suffix] = id
+    add_to_dict(doi_dict, doi_suffix, id)
 
 def process_arxiv(id, ee, arxiv_dict):
     arxiv_prefix = 'arxiv.org/abs/'
     try:
         arxiv_suffix = ee.split(arxiv_prefix, 1)[1]
-        arxiv_dict[arxiv_suffix] = id
+        #arxiv_dict[arxiv_suffix] = id
+        add_to_dict(arxiv_dict, arxiv_suffix, id)
     except:
         pass
 
 def process_ieeexplore(id, ee, ieee_dict):
     ieee_suffix = ee.split('/')[-2]
-    ieee_dict[ieee_suffix] = id
+    #ieee_dict[ieee_suffix] = id
+    add_to_dict(ieee_dict, ieee_suffix, id)
 
 def process_handle(id, ee, handle_dict):
     handle_prefix = 'hdl.handle.net/'
     handle_suffix = ee.split(handle_prefix)[1]
-    handle_dict[handle_suffix] = id
+    #handle_dict[handle_suffix] = id
+    add_to_dict(handle_dict, handle_suffix, id)
 
 def process_dnb(id, ee, dnb_dict):
     dnb_suffix = ee.split('/')[-1]
-    dnb_dict[dnb_suffix] = id
+    #dnb_dict[dnb_suffix] = id
+    add_to_dict(dnb_dict, dnb_suffix, id)
 
 def process_acm(id, ee, acm_dict):
     acm_suffix = ee.split('=')[-1]
-    acm_dict[acm_suffix] = id
+    #acm_dict[acm_suffix] = id
+    add_to_dict(acm_dict, acm_suffix, id)
 
 def process_ethos(id, ee, ethos_dict):
     ethos_suffix = ee.split('=')[-1]
-    ethos_dict[ethos_suffix] = id
+    #ethos_dict[ethos_suffix] = id
+    add_to_dict(ethos_dict, ethos_suffix, id)
+
+
+def process_wikidata_dblp_author_id(id, entity, dblp_dict):
+    key = entity['key']
+    if key[:10] == "homepages/":
+        id_sin_homepages = key[10:]
+        add_to_dict(dblp_dict, id_sin_homepages, id)
+
+
+def process_any(id, content, dict):
+    add_to_dict(dict, content, id)
 
 
 doi_prefix = 'doi.org/'
@@ -110,6 +136,11 @@ handle_dict = {}
 dnb_dict = {}
 acm_dict = {}
 ethos_dict = {}
+isbn_dict = {}
+
+dblp_person_dict = {}
+scholar_dict = {}
+orcid_dict = {}
 
 links_dict = {}
 
@@ -122,7 +153,8 @@ url_functions_dict = {doi_prefix:{'function':process_doi, 'dict':doi_dict},
                       handle_prefix:{'function':process_handle, 'dict':handle_dict},
                       dnb_prefix:{'function':process_dnb, 'dict':dnb_dict},
                       acm_prefix:{'function':process_acm, 'dict':acm_dict},
-                      ethos_prefix:{'function':process_ethos, 'dict':ethos_dict}}
+                      ethos_prefix:{'function':process_ethos, 'dict':ethos_dict}
+                      }
 
 wikidata_properties_dict = {dblp_properties[0]:{'name':'DBLP publication ID','dict':dblp_dict,'count':0}, 
                             dblp_properties[1]:{'name':'DBLP venue ID','dict':dblp_dict,'count':0}, 
@@ -135,7 +167,13 @@ wikidata_properties_dict = {dblp_properties[0]:{'name':'DBLP publication ID','di
                             acm_properties_w[0]:{'name':'ACM Classification Code','dict':acm_dict,'count':0}, 
                             acm_properties_w[1]:{'name':'ACM Digital Library citation ID','dict':acm_dict,'count':0}, 
                             acm_properties_w[2]:{'name':'ACM Digital Library event ID','dict':acm_dict,'count':0}, 
-                            ethos_property_w:{'name':'ethos','dict':ethos_dict,'count':0}}
+                            ethos_property_w:{'name':'ethos','dict':ethos_dict,'count':0},
+                            isbn_properties[0]:{'name':'ISBN-10','dict':isbn_dict,'count':0},
+                            isbn_properties[1]:{'name':'ISBN-13','dict':isbn_dict,'count':0}}
+
+wikidata_properties_person_dict = {dblp_author_property:{'name':'DBLP author ID', 'dict':dblp_person_dict, 'count':0},
+                                   orcid_property:{'name':'ORCID ID','dict':orcid_dict, 'count':0},
+                                   google_scholar_property:{'name':'Google Scholar ID', 'dict':scholar_dict, 'count':0}}
 
 #leer BibKG y capturar los ee
 
@@ -154,7 +192,17 @@ with open(bibkg_path, 'r') as bibkg:
                     key_function(id, ee, key_category_dict)
                     break
         if ':url' in entity:
-            processed_url = process_dblp_url(entity, dblp_dict)
+            process_dblp_url(entity, dblp_dict)
+        if 'isbn' in entity:
+            process_any(id, entity['isbn'], isbn_dict)
+        if 'type' in entity and entity['type'] == 'Person':
+            if 'scholar' in entity:
+                process_any(id, entity['scholar'], scholar_dict)
+            if 'orcid' in entity:
+                process_any(id, entity['orcid'], orcid_dict)
+            if 'key' in entity:
+                process_wikidata_dblp_author_id(id, entity, dblp_person_dict)
+
 
 print("IDs de BibKG cargados")
 print("Comparando con IDs de Wikidata")
@@ -163,8 +211,8 @@ with open(wikidata_scholar_path, 'r') as wikidata_scholar:
     for linea in wikidata_scholar:
         entity = json.loads(linea)
         id = entity['id']
-        claims = entity['claims']
-        for key, value in claims.items():
+        claims = entity['claims'].items()
+        for key, value in claims:
             if key in wikidata_properties_dict:
                 for valor in value:
                     try:
@@ -180,23 +228,52 @@ with open(wikidata_scholar_path, 'r') as wikidata_scholar:
                             linked = True
                             count_links += 1 
                         property['count'] += 1
-                        break                
-                                       
+                        break
+
+with open(wikidata_person_path, 'r') as wikidata_person:
+    for linea in wikidata_person:
+        entity = json.loads(linea)
+        id = entity['id']
+        claims = entity['claims'].items()
+        for key, value in claims:
+            if key in wikidata_properties_person_dict:
+                for valor in value:
+                    try:
+                        valor_at= valor['mainsnak']['datavalue']['value']
+                    except:
+                        continue
+                    property = wikidata_properties_person_dict[key]
+                    property_dict = property['dict']
+                    if valor_at in property_dict:
+                        property_id = property_dict[valor_at]
+                        if property_id not in links_dict:
+                            links_dict[property_id] = id
+                            linked = True
+                            count_links += 1 
+                        property['count'] += 1
+                        break
+                    # if key == property_dblp:
+                    #     wikidata_dblp_dict[content] = id
+                    # if key == property_orcid:
+                    #     wikidata_orcid_dict[content] = id
+                    # if key == property_scholar:
+                    #     wikidata_scholar_dict[content] = id               
+                                    
 print(len(links_dict))
 print("Escribiendo enlaces en BibKG")
 
 count_links_writed = 0
 
-# with open(bibkg_path, 'r') as bibkg, open(bibkg_linked_path, 'w') as bibkg_linked:
-#     for linea in bibkg:
-#         entity = json.loads(linea)
-#         id = entity['id']
-#         if id in links_dict and 'wikidata' not in entity:
-#             wikidata_id = links_dict[id]
-#             entity['wikidata'] = wikidata_id
-#             count_links_writed += 1
-#         json.dump(entity, bibkg_linked)
-#         bibkg_linked.write("\n") 
+with open(bibkg_path, 'r') as bibkg, open(bibkg_linked_path, 'w') as bibkg_linked:
+    for linea in bibkg:
+        entity = json.loads(linea)
+        id = entity['id']
+        if id in links_dict and 'wikidata' not in entity:
+            wikidata_id = links_dict[id]
+            entity['wikidata'] = wikidata_id
+            count_links_writed += 1
+        json.dump(entity, bibkg_linked)
+        bibkg_linked.write("\n") 
 
 fin = time.time()
 
@@ -207,6 +284,9 @@ print("Lectura de Wikidata terminada")
 print("Enlaces totales conseguidos: {}".format(count_links))
 print("Enlaces de cada tipo:")
 for key, value in wikidata_properties_dict.items():
+    print("Enlaces conseguidos con {}: {}".format(value['name'], value['count']))
+
+for key, value in wikidata_properties_person_dict.items():
     print("Enlaces conseguidos con {}: {}".format(value['name'], value['count']))
 
 print("Enlaces totales escritos en BibKG: {}".format(count_links_writed))

@@ -38,13 +38,10 @@ with open(bibkg_url, 'r') as bibkg:
     for linea in bibkg:
         entity = json.loads(linea)
         id = entity['id']
-        if 'has_author' in entity:
-            authors = entity['has_author']
-            for author in authors:
-                value = author['value']
-                if value == "a_Aidan_Hogan" and 'wikidata' in entity:
-                        print("{} = {}".format(id, entity['wikidata']))
-                        count_wikidata += 1
+        if 'ee' in entity:
+            type = entity['ee']
+            if 'doi.org' in type:
+                print(type)
         # for key in entity:
         #     if "\"" in key:
         #         count_comillas += 1
