@@ -3,6 +3,7 @@ import time
 
 dblp_dict = {}
 
+
 def process_dblp_url(entity, dblp_dict):
     #print(url)
     url = entity[':url'][0]['value']
@@ -66,10 +67,13 @@ with open(bibkg_url, 'r') as bibkg:
         if 'type' in entity:
             type = entity['type']
             id = entity['id']
-            if 'key' in entity:
-                print(entity)
-            if ':key' in entity:
-                print("BBBBBBBBB")
+            if 'has_author' in entity:
+                for author in entity['has_author']:
+                    if 'a_Aidan_Hogan' in author['value']:
+                        if 'wikidata' in entity:
+                            print("wikidata: {}".format(entity['wikidata']))
+                            if 'ee' in entity:
+                                print("ee: {}".format(entity['ee']))
         c1 += 1
 fin = time.time()
 print(count_url)
