@@ -55,27 +55,37 @@ count_espacios = 0
 entity_dict = {}
 count_wikidata = 0
 
-count_url = 0
-count_url_dblp = 0
+count_total = 0
 
-type_count_dict = {}
+
+type_dict = {}
+attributes_dict = {}
 
 inicio = time.time()
 with open(bibkg_url, 'r') as bibkg:
     for linea in bibkg:
         entity = json.loads(linea)
+        if entity['id'] == 'j_biomedsem_KhanSMHMRS17':
+            print(entity)
+        else:
+            continue
         if 'type' in entity:
             type = entity['type']
             id = entity['id']
-            if 'has_author' in entity:
-                for author in entity['has_author']:
-                    if 'a_Aidan_Hogan' in author['value']:
-                        if 'wikidata' in entity:
-                            print("wikidata: {}".format(entity['wikidata']))
-                            if 'ee' in entity:
-                                print("ee: {}".format(entity['ee']))
+            if type not in type_dict:
+                type_dict[type] = {'count':0}
+            type_dict[type]['count'] += 1
+            for key in entity:
+                if key not in type_dict[type]:
+                    type_dict[type][key] = 0
+                type_dict[type][key] += 1
+                if key not in attributes_dict:
+                    attributes_dict[key] = 0
+                attributes_dict[key] += 1
+                count_total += 1
         c1 += 1
 fin = time.time()
-print(count_url)
-print(count_url_dblp)
-print(type_count_dict)
+print(count_total)
+print(type_dict)
+print('\n')
+print(attributes_dict)

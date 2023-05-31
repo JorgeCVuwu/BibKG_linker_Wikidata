@@ -33,15 +33,17 @@ count_espacios = 0
 entity_dict = {}
 count_wikidata = 0
 
+c = 0
 inicio = time.time()
 with open(bibkg_url, 'r') as bibkg:
     for linea in bibkg:
         entity = json.loads(linea)
         id = entity['id']
-        if 'ee' in entity:
-            type = entity['ee']
-            if 'doi.org' in type:
-                print(type)
+        if 'has_author' in entity:
+            print(entity['has_author'])
+            c += 1
+            if c > 10:
+                break
         # for key in entity:
         #     if "\"" in key:
         #         count_comillas += 1
@@ -52,8 +54,7 @@ with open(bibkg_url, 'r') as bibkg:
         #     c_author += 1
         c1 += 1
 fin = time.time()
-print("Enlaces con Wikidata: {}".format(count_wikidata))
-print("Tiempo de ejecución: {} segundos".format(fin - inicio))
+# s
 #         if 'has_author' in entity:
 #             count_has_author += 1
 #         if 'url' in entity:

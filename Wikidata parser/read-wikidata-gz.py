@@ -114,6 +114,15 @@ def reduce_entity(entity):
                 datavalue = reduce_datavalue(valor['datavalue'])
                 mainsnak["datavalue"] = datavalue
             new_object = {'mainsnak':mainsnak, 'rank':objeto['rank']}
+            if llave == 'P50':
+                if "qualifiers" in objeto:
+                    #P1545: orden del autor
+                    if "P1545" in objeto["qualifiers"]:
+                        try:
+                            new_object['order'] = objeto["qualifiers"]["P1545"]["datavalue"]["value"]
+                        except:
+                            pass
+                    
             # if "qualifiers" in objeto:
             #     new_object['qualifiers':objeto['qualifiers']]
             entity['claims'][llave][i] = new_object
@@ -175,7 +184,7 @@ def filter_scholar(instances_list, publication_filter, event_filter, venue_filte
 
                         
 
-path = "./latest-all.json.gz"
+path = "db/gz/latest-all.json.gz"
 c = 0
 len_wikidata = 100000000
 
