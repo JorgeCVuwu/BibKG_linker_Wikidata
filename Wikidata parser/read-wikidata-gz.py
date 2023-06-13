@@ -216,7 +216,7 @@ author_name_string = 'P2093'
 
 other_filters_properties = [author]
 
-occurrence = 'Q1190554' #analizar a posteriori
+occurrence = 'Q1190554' 
 taxon = 'Q16521'
 adm_territorial = 'Q56061'
 arquitectural_estructure = 'Q811979'

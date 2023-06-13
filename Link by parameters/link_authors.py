@@ -255,7 +255,7 @@ data = [
     [(fin - inicio)/3600, count_links_dict, count_links_writed, len(total_authors_bibkg_dict), len(string_authors_dict)]
 ]
 csv_folder = "Link by parameters/data/"
-metadata_path = csv_folder + 'wikidata-parser-metadata-3.csv'
+metadata_path = csv_folder + 'link-authors-metadata.csv'
 with open(metadata_path, mode='w', newline='') as archivo_csv:
     
     # Crea el objeto de escritura de CSV

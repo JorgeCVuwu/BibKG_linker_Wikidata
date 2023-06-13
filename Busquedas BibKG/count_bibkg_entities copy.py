@@ -31,6 +31,7 @@ c_author = 0
 count_comillas = 0
 count_espacios = 0
 entity_dict = {}
+count_dict = {}
 count_wikidata = 0
 
 c = 0
@@ -39,11 +40,12 @@ with open(bibkg_url, 'r') as bibkg:
     for linea in bibkg:
         entity = json.loads(linea)
         id = entity['id']
-        if 'has_author' in entity:
-            print(entity['has_author'])
-            c += 1
-            if c > 10:
-                break
+        if 'in_journal' in entity:
+            n = str(len(entity['in_journal']))
+            if n not in count_dict:
+                count_dict[n] = 0
+            count_dict[n] += 1
+
         # for key in entity:
         #     if "\"" in key:
         #         count_comillas += 1
@@ -54,6 +56,7 @@ with open(bibkg_url, 'r') as bibkg:
         #     c_author += 1
         c1 += 1
 fin = time.time()
+print(count_dict)
 # s
 #         if 'has_author' in entity:
 #             count_has_author += 1
