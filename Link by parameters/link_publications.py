@@ -3,9 +3,10 @@ import re
 import time
 import os
 import csv
+import traceback
 
 json_folder = "db/JSON/"
-bibkg_path = json_folder + "bibkg linked by id.json"
+bibkg_path = json_folder + "bibkg linked authors.json"
 bibkg_names_path = json_folder + "bibkg_person_name.json"
 bibkg_linked_path = json_folder + "bibkg linked publications.json"
 
@@ -22,11 +23,7 @@ wikidata_person_dict = {}
 wikidata_author_property = 'P50'
 
 links_dict = {}
-links_string_dict = {}
 link_counts_dict = {}
-total_authors_bibkg_dict = {}
-string_authors_dict = {}
-
 count_links = 0
 
 def is_number(string):
@@ -51,30 +48,7 @@ def process_names(name):
 def process_author_id(id):
     if id[0:2] == "a_":
         return id[2:].replace("_", " ")
-
-print("Almacenando autores de BibKG")
-
-author_name_dict = {}
-with open(bibkg_path, 'r') as bibkg:
-    for linea in bibkg:
-        entity = json.loads(linea)
-        id = entity['id']
-        if 'type' in entity:
-            entity_type = entity['type']
-            if entity_type == 'Person' and 'wikidata' in entity:
-                author_name_dict[id] = {'name':entity['name'],'publications':{}}
-
-print("Almacenando publicaciones de BibKG en autores")
-
-with open(bibkg_path, 'r') as bibkg:
-    for linea in bibkg:
-        entity = json.loads(linea)
-        id = entity['id']
-        if 'has_author' in entity:
-            for author in entity['has_author']:
-                author_value = author['value']
-                if author_value in author_name_dict:
-                    author_name_dict[author_value]['publications'][id] = {'id':id}  
+    
 
 def link_author(links_dict, bibkg_id, id, link_counts_dict = link_counts_dict):
     if bibkg_id not in links_dict:
@@ -86,146 +60,116 @@ def link_author(links_dict, bibkg_id, id, link_counts_dict = link_counts_dict):
         link_counts_dict[bibkg_id][id] = 0
     link_counts_dict[bibkg_id][id] += 1
 
-print("Almacenando nombres de autores en \"author_of\"")
-
 inicio = time.time()
 
+print("Almacenando autores de BibKG")
+
+author_name_dict = {}
+author_wikidata_id_dict = {}
 with open(bibkg_path, 'r') as bibkg:
     for linea in bibkg:
         entity = json.loads(linea)
         id = entity['id']
-        if 'type' not in entity:
-            continue
-        type = entity['type']
-        if 'wikidata' in entity and 'has_author' in entity and type != 'Person':
-            wikidata_id = entity['wikidata']
+        if 'type' in entity:
+            entity_type = entity['type']
+            if entity_type == 'Person' and 'wikidata' in entity:
+                author_name_dict[id] = {'id':id, 'name':entity['name'], 'publications':{}}
+                author_wikidata_id_dict[entity['wikidata']] = author_name_dict[id]
+                
+
+print("Almacenando publicaciones de BibKG en autores")
+
+with open(bibkg_path, 'r') as bibkg:
+    for linea in bibkg:
+        break_c = False
+        entity = json.loads(linea)
+        id = entity['id']
+        if 'has_author' in entity:
             for author in entity['has_author']:
-                author_id = author['value']
-                try:
-                    author['name'] = author_name_dict[author_id]
-                except:
-                    author['name'] = process_author_id(author_id)
-            bibkg_publications_dict[wikidata_id] = {'id':id,'has_author':entity['has_author']}
+                author_value = author['value']
+                if author_value in author_name_dict:
+                    author_entity = {}
+                    if 'name' in entity:
+                        try:
+                            author_entity['name'] = process_names(str(entity['name']))
+                        except:
+                            print(entity)
+                            print(entity['name'])
+                            break_c = True
+                            break
+                    author_name_dict[author_value]['publications'][id] = author_entity
+            if break_c:
+                break
 
-del author_name_dict
+print("Almacenando autores de Wikidata")
 
-print("Leyendo personas de Wikidata")
-
+count_wikidata_authors = 0
+count_wikidata_publications = 0
+wikidata_author_dict = {}
 with open(wikidata_person_path, 'r') as wikidata_person:
     for linea in wikidata_person:
         entity = json.loads(linea)
         id = entity['id']
-        if 'en' in entity['name']:
-            wikidata_person_dict[id] = entity['name']['en']['value']
-        else:
-            for key, valor in entity['name'].items():
-                wikidata_person_dict[id] = valor['value']
-                break
-        
-print("Comparando autores en Wikidata")
+        if id in author_wikidata_id_dict:
+            wikidata_author_dict[id] = {'id':id, 'publications':{}}
+            count_wikidata_authors += 1
 
-c = 0
-break_condition = False
+print(count_wikidata_authors)
+print("Almacenando publicaciones de autores de Wikidata")
 with open(wikidata_scholar_path, 'r') as wikidata_scholar:
     for linea in wikidata_scholar:
+        break_c = False
         entity = json.loads(linea)
-        wikidata_id = entity['id']
-        if wikidata_id in bibkg_publications_dict:
-            bibkg_entity = bibkg_publications_dict[wikidata_id]
-            claims = entity['claims']
-
-            if break_condition:
-                break
-            if wikidata_author_property in claims:
-                authors = claims[wikidata_author_property]
-                author_names_list_bibkg = {}
-                order_list_bibkg = {}
-                for value in bibkg_entity['has_author']:
-                    #Procesar nombre de BibKG
-                    bibkg_person_id = value['value']
-                    bibkg_person_name = value['name']
-                    # print(bibkg_person_name)
-                    # print(bibkg_person_id)
-                    processed_name = process_names(bibkg_person_name)
-                    author_names_list_bibkg[processed_name] = bibkg_person_id
-                    if 'orden' in value:
-                        order_list_bibkg[value['orden']] = processed_name
-                    
-                    if bibkg_person_id not in total_authors_bibkg_dict:
-                        total_authors_bibkg_dict[bibkg_person_id] = processed_name
-                if len(order_list_bibkg) > 0:
-                    count_bibkg_order += 1
-                #rint(author_names_list_bibkg)
-                #bibkg_publications_dict[wikidata_id]
-                # print(author_names_list_bibkg)
-                # print(authors)
-                
-                for author in authors:
-                    #print(author)
-                    count_order_errors = 0
-                    if 'datavalue' in author['mainsnak']:
-                        order_in_wikidata = True
-                        wikidata_author_id = author['mainsnak']['datavalue']['value']
-                        try:
-                            wikidata_author_order = author['order'][0]['datavalue']['value']
-                            count_orders += 1
-                            #print("a")
-                        except:
-                            #print(author)
-                            order_in_wikidata = False
-                            count_order_errors += 1
-                        #Procesar nombre de Wikidata
-                        #print(author_name)
-                        #print(wikidata_person_dict[author_value])
-                        try:
-                            wikidata_author_name = process_names(wikidata_person_dict[wikidata_author_id])
-                        except:
-                            count_author_index_error += 1
-                            continue
-                        #print(wikidata_author_name)
-                        #print(author_names_list_bibkg)
-                        #print(author_names_list_bibkg[wikidata_author_name])
-                        
-                        if order_in_wikidata:
+        id = entity['id']
+        claims = entity['claims']
+        if wikidata_author_property in claims:
+            authors = claims[wikidata_author_property]
+            for author in authors:
+                if 'datavalue' in author['mainsnak']:
+                    wikidata_author_id = author['mainsnak']['datavalue']['value']
+                    if wikidata_author_id in wikidata_author_dict:
+                        author_entity = {}
+                        if 'name' in entity:
                             try:
-                                name_order = order_list_bibkg[wikidata_author_order]
-                                if name_order in author_names_list_bibkg:
-                                    bibkg_id = author_names_list_bibkg[name_order]
-                                    link_author(links_dict, bibkg_id, id)
-                                    count_links+=1
-                                    count_links_order += 1
-                                else:
-                                    if wikidata_author_name in author_names_list_bibkg:
-                                        bibkg_id = author_names_list_bibkg[wikidata_author_name]
-                                        link_author(links_dict, bibkg_id, id)
-                                        count_links += 1
-                                    count_not_links_order += 1
+                                #author_entity['name'] = process_names(entity['name']['en']['value'])
+                                if len(entity['name']) > 0:
+                                    author_entity['name'] = process_names(entity['name'][next(iter(entity['name']))]['value'])
                             except:
-                                count_order_number_error += 1
+                                print(entity)
+                                print(entity['name'])
+                                break_c = True
+                                traceback.print_exc()
+                                break
+                        wikidata_author_dict[wikidata_author_id]['publications'][id] = author_entity
+                        count_wikidata_publications += 1
+            if break_c:
+                break
+print(count_wikidata_publications)
 
-                        else:
-                            if wikidata_author_name in author_names_list_bibkg:
-                                bibkg_id = author_names_list_bibkg[wikidata_author_name]
-                                link_author(links_dict, bibkg_id, id)
-                                count_links += 1
-                                count_links_not_order += 1
-
-                if order_in_wikidata:
-                    count_wikidata_order += 1
-                #break
-
-count_repeated_id = 0
-count_links_dict = 0
-for key, lista in link_counts_dict.items():
-    if len(lista) > 1:
-        count_repeated_id += 1
-    count_links_dict += 1
-
-count_links_writed = 0
+print("Comparando publicaciones de autores")
+count_links = 0
+for key, wikidata_entity in wikidata_author_dict.items():
+    wikidata_publications = wikidata_entity['publications']
+    bibkg_entity = author_wikidata_id_dict[key]
+    bibkg_publications = bibkg_entity['publications']
+    name_values = [publication['name'] for publication in bibkg_publications.values()]
+    repeated_names = set()
+    for name in name_values:
+        if name_values.count(name) > 1:
+            repeated_names.add(name)
+    for bibkg_key, bibkg_publication in bibkg_publications.items():
+        bibkg_name = bibkg_publication['name']
+        # definir parametros de comparacion
+        for wikidata_key, value in wikidata_publications.items():
+            if 'name' in value and bibkg_name not in repeated_names and bibkg_name == value['name']:
+                links_dict[bibkg_key] = wikidata_key
+                count_links += 1
 
 print("Escribiendo enlaces en BibKG")
 
-with open(bibkg_path, 'r') as bibkg, open(bibkg_linked_path, 'w') as bibkg_linked_authors:
+count_links_writed = 0
+
+with open(bibkg_path, 'r') as bibkg, open(bibkg_linked_path, 'w') as bibkg_linked_publications:
     for linea in bibkg:
         entity = json.loads(linea)
         id = entity['id']
@@ -233,31 +177,15 @@ with open(bibkg_path, 'r') as bibkg, open(bibkg_linked_path, 'w') as bibkg_linke
             wikidata_id = links_dict[id]
             entity['wikidata'] = wikidata_id
             count_links_writed += 1
-        json.dump(entity, bibkg_linked_authors)
-        bibkg_linked_authors.write("\n")
+        json.dump(entity, bibkg_linked_publications)
+        bibkg_linked_publications.write("\n")
 
 fin = time.time()
-print("Guardando metadatos")
 
-data = [
-    ['time_hours', 'linked_entities', 'writed_linked_entities', 'total_author_entities_in_bibkg_publications', 'total_wikidata_string_authors'],
-    [(fin - inicio)/3600, count_links_dict, count_links_writed, len(total_authors_bibkg_dict), len(string_authors_dict)]
-]
-csv_folder = "Link by parameters/data/"
-metadata_path = csv_folder + 'link-authors-metadata.csv'
-with open(metadata_path, mode='w', newline='') as archivo_csv:
-    
-    # Crea el objeto de escritura de CSV
-    writer = csv.writer(archivo_csv)
-    
-    # Escriba los datos en el archivo CSV
-    for fila in data:
-        writer.writerow(fila)
-        
-print("Total de enlaces escritos: {}".format(count_links_writed))
+print("Tiempo de ejecución: {} segundos".format(fin - inicio))
 
-print("Tiempo estimado del proceso: {} segundos".format(fin - inicio))
+print("Relaciones totales encontradas: {}".format(count_links))
 
-
+print("Enlaces totales escritos en BibKG: {}".format(count_links_writed))
         
 
