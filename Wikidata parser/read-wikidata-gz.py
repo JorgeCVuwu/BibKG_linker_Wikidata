@@ -88,6 +88,7 @@ def reduce_datavalue(datavalue):
 
 def reduce_entity(entity):
     claims = entity['claims']
+    count_order_errors = 0
     # if claims['rank'] == 'deprecated':
     #     return None
     try:
@@ -114,20 +115,22 @@ def reduce_entity(entity):
                 datavalue = reduce_datavalue(valor['datavalue'])
                 mainsnak["datavalue"] = datavalue
             new_object = {'mainsnak':mainsnak, 'rank':objeto['rank']}
-            if llave == 'P50':
+            if llave == 'P50' or llave == 'P2093':
                 if "qualifiers" in objeto:
                     #P1545: orden del autor
                     if "P1545" in objeto["qualifiers"]:
                         try:
-                            new_object['order'] = objeto["qualifiers"]["P1545"]["datavalue"]["value"]
+                            new_object['order'] = objeto["qualifiers"]["P1545"][0]["datavalue"]["value"]
                         except:
-                            pass
+                            count_order_errors += 1
+                            #print(id)
+                            #pass
                     
             # if "qualifiers" in objeto:
             #     new_object['qualifiers':objeto['qualifiers']]
             entity['claims'][llave][i] = new_object
 
-    return entity
+    return entity, count_order_errors
 
 def filter_instances(instances, filtros):
     for llave in instances:
@@ -153,10 +156,10 @@ def write_entities(file, entity, name, empty):
     if description:                     
         entity['description'] = description
         del entity['descriptions']
-    entity = reduce_entity(entity)
+    entity, count_order_error = reduce_entity(entity)
     ujson.dump(entity, file)
     empty = False
-    return empty
+    return empty, count_order_error
 
 def replaceWikidataHeader(lista):
     string = 'http://www.wikidata.org/entity/'
@@ -240,9 +243,9 @@ inicio = time.time()
 
 carpeta_externa = "D:\Memoria" 
 
-wikidata_person_file = "wikidata_person_3.json"
-wikidata_scholar_file = "wikidata_scholar_3.json"
-wikidata_else_file = "wikidata_else_3.json"
+wikidata_person_file = "wikidata_person_4.json"
+wikidata_scholar_file = "wikidata_scholar_4.json"
+wikidata_else_file = "wikidata_else_4.json"
 
 wikidata_person_url = os.path.join(carpeta_externa, wikidata_person_file)
 wikidata_scholar_url = os.path.join(carpeta_externa, wikidata_scholar_file)
@@ -259,6 +262,7 @@ with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, 
     empty_person = True
     empty_scholar = True
     empty_other = True
+    count_order_errors = 0
     for line in file:
         line = line.strip()
 
@@ -305,15 +309,17 @@ with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, 
                 #Procesar scholar_articles o relacionados directos de Wikidata           
                 elif filter_scholar(instances_list, publication_filter, event_filter, venue_filter, other_filters_properties_not):
                     #print('a')
-                    empty_scholar = write_entities(wikidata_scholar, entity, name, empty_scholar)
+                    empty_scholar, count_order_error = write_entities(wikidata_scholar, entity, name, empty_scholar)
                     count_scholar += 1
+                    count_order_errors += count_order_error
                     #break
 
                 #Procesar otras entidades de Wikidata    
                 elif (not filter_instances(instances_list, other_filters_instances)):
                     if (not filter_instances(claims, other_filters_properties_not)):
-                        empty_other = write_entities(wikidata_else, entity, name, empty_other)
+                        empty_other, count_order_error = write_entities(wikidata_else, entity, name, empty_other)
                         count_other += 1
+                        count_order_errors += count_order_error
         except:
             pass
         c += 1
@@ -342,6 +348,8 @@ print("Tiempo estimado de lectura y escritura para todo el dump: {} horas".forma
 print("Número de personas: {}".format(count_human))
 print("Número de scholar articles: {}".format(count_scholar))
 print("Número de entidades en el archivo 3: {}".format(count_other))
+
+print("Número de errores de orden: {}".format(count_order_errors))
 
 
 
