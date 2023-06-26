@@ -1,0 +1,28 @@
+{
+"aliases": {
+    "en": [
+      {
+        "language": "en",
+        "value": "New York"
+      }
+    ],
+    "fr": [
+      {
+        "language": "fr",
+        "value": "New York City"
+      },
+      {
+        "language": "fr",
+        "value": "NYC"
+      },
+      {
+        "language": "fr",
+        "value": "The City"
+      },
+      {
+        "language": "fr",
+        "value": "La grosse pomme"
+      }
+    ]
+  }
+}

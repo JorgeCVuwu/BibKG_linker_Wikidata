@@ -30,13 +30,10 @@ c = 0
 # Abre un archivo en modo escritura
 with open("db/milledb/milleDB.dump", encoding="utf8") as milldb_file:
     for line in milldb_file:
-        if '->' in line:
-            split = line.split()
-            if len(split) > 2 and 'orden:' not in line and '->' in split[0] and 'label:' in split[-1]:
-                print(line)
-                c += 1
-                if c > 50:
-                    break
+        print(line)
+        c += 1
+        if c > 50:
+            break
 
 # print("\nCreando lista de diccionarios")
 # lista_diccionarios = [v for k, v in bibkg_dictionary.items()]

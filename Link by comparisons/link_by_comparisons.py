@@ -5,6 +5,7 @@ import os
 import csv
 import traceback
 from datetime import datetime
+from dateutil import parser
 
 json_folder = "db/JSON/"
 bibkg_path = json_folder + "bibkg linked authors.json"
@@ -18,9 +19,10 @@ wikidata_scholar_name = "wikidata_scholar_4.json"
 wikidata_person_path = os.path.join(carpeta_externa, wikidata_person_name)
 wikidata_scholar_path = os.path.join(carpeta_externa, wikidata_scholar_name)
 
+#get_year: -> str . acá, sólo se obtiene el año analizando los caracteres del 1 al 5, según el formato ISO 8601, por problemas al procesar 
+# la fecha (de todos modos, el año siempre poseerá 4 dígitos (las entidades requeridas siempre tendrán una fecha posterior al siglo XIX))
 def get_year(date):
-    datetime_date = datetime.fromisoformat(date)
-    year = datetime_date.year
+    year = date[1:5]
     return year
 
 def is_number(string):
@@ -40,6 +42,7 @@ def obtain_bibkg_authors(authors):
             return authors
 
 def process_names(name):
+    name = str(name)
     split = name.split()
     resultado = name
     if len(split) == 3:
@@ -56,16 +59,26 @@ def process_author_id(id):
         return id[2:].replace("_", " ")
 
 def add_property(entity, global_dict, property):
+
+    if 'first_property' not in global_dict: #
+        global_dict['first_property'] = True #
+
     id = entity['id']
     property_dict_name = property + '_dict'
     if property_dict_name not in global_dict:
         global_dict[property_dict_name] = {}
     if property in entity:
         property_value = entity[property]
+        if property == 'name':
+            property_value = process_names(property_value)
         property_dict = global_dict[property_dict_name]
         if property_value not in property_dict:
             property_dict[property_value] = set()
         property_dict[property_value].add(id)
+
+        if global_dict['first_property'] and property_value and property == "year": #
+            print("Año de BibKG:{}".format(property_value)) #
+            global_dict['first_property'] = False #
 
 def add_name(entity, global_dict):
     add_property(entity, global_dict, "name")
@@ -95,6 +108,10 @@ def compare_aliases(entity, global_dict):
     return return_id_list
 
 def add_authors(entity, global_dict):
+
+    if 'first_author' not in global_dict: #
+        global_dict['first_author'] = True #
+
     id = entity['id']
     if 'author_dict' not in global_dict:
         global_dict['author_dict'] = {}
@@ -118,46 +135,58 @@ def add_authors(entity, global_dict):
             author_dict[author_key] = set()
         author_dict[author_key].add(id)
 
+        if global_dict['first_author']: #
+            print("Author de BibKG: {}".format(author_key)) #
+        global_dict['first_author'] = False #
+
 def compare_authors(entity, global_dict, bibkg_id):
+
+    if 'authors_in' not in global_dict: #
+        global_dict['authors_in'] = 0 #
+
+    if 'first_author_w' not in global_dict: #
+        global_dict['first_author_w'] = True #
+
     property = 'P50'
     author_string_property = 'P2093'
     claims = entity['claims']
     authors = ''
     authors_entities_dict = {}
     authors_string_dict = {}
+    if 'count_authors_coincidences' not in global_dict:
+        global_dict['count_authors_coincidences'] = 0
     if property in claims:
         authors_dict = claims[property]
         for author_object in authors_dict:
-            author_id = author_object['mainsnak']['datavalue']['value']
-            author_value = process_names(global_dict['wikidata_person'][author_id])
-            try:
-                author_order = author_object['order']
-                if author_order == 0:
-                    print(author_object)
-            except:
-                print(entity)
-                print(author_object)
-                traceback.print_exc()
-            try:
-                authors_entities_dict[author_order] = author_value
-            except:
-                #print(author_order)
-                #print(author_object)
-                print(entity['id'])
-                print(author_order)
-                traceback.print_exc()
-            #authors += author_value + '_' + str(author_order)
+            if 'datavalue' in author_object['mainsnak']:
+                author_id = author_object['mainsnak']['datavalue']['value']
+                try:
+                    author_value = process_names(global_dict['wikidata_person'][author_id])
+                    author_order = author_object['order']
+                    if author_order == 0:
+                        print(author_object)
+                    authors_entities_dict[author_order] = author_value
+                except:
+                    pass
+                    #print(author_order)
+                    #print(author_object)
+                    #print(entity['id'])
+                    #print(author_order)
+                    #traceback.print_exc()
+                #authors += author_value + '_' + str(author_order)
     if author_string_property in claims:
         authors_dict = claims[author_string_property]
         for author_object in authors_dict:
-            author_value = process_names(author_object['mainsnak']['datavalue']['value'])
-            try:            
-                author_order = author_object['order']
-            except:
-                print(author_object)
-                print(entity)
-                traceback.print_exc()
-            authors_string_dict[author_order] = author_value
+            if 'datavalue' in author_object['mainsnak']:
+                author_value = process_names(author_object['mainsnak']['datavalue']['value'])
+                try:            
+                    author_order = author_object['order']
+                    authors_string_dict[author_order] = author_value
+                except:
+                    pass
+                    # print(author_object)
+                    # print(entity)
+                    # traceback.print_exc()
             #authors += author_value + '_' + str(author_order)
     #Se añaden las entidades de la propiedad string dict a las de la propiedad author, si es que no existe ya un orden similar.
     authors_entities_dict.update(authors_string_dict)
@@ -167,9 +196,19 @@ def compare_authors(entity, global_dict, bibkg_id):
             authors += '##'
         authors += value + '_' + order
 
+    if global_dict['first_author_w'] and (property in claims or author_string_property in claims): #
+        print(entity['claims']) #
+        print(entity['id']) #
+        print(authors_entities_dict) #
+        print(authors) #
+        print("Autores de Wikidata: {}".format(authors)) #
+        global_dict['first_author_w'] = False #
+    
     if authors in global_dict['author_dict']:
         authors_id = global_dict['author_dict'][authors]
+        global_dict['authors_in'] += 1 #
         if bibkg_id in authors_id:
+            global_dict['count_authors_coincidences'] += 1
             return True
         else:
             return False
@@ -180,13 +219,31 @@ def add_date(entity, global_dict):
     add_property(entity, global_dict, "year")
 
 def compare_date(entity, global_dict, bibkg_id):
+
+    if 'first_date' not in global_dict: #
+        global_dict['first_date'] = True #
+
     date_property = 'P577'
-    if date_property in entity['claims'] and 'datavalue' in entity['claims'][date_property][0]:
-        date_value = entity['claims'][date_property][0]['datavalue']['value']['time']
+
+    # if date_property in entity['claims'] and global_dict['first_date']: #
+    #     print("Año de Wikidata: {}".format(entity['claims'][date_property])) #
+    #     global_dict['first_date'] = False #
+
+
+    if 'count_date_coincidences' not in global_dict:
+        global_dict['count_date_coincidences'] = 0
+    if date_property in entity['claims'] and 'datavalue' in entity['claims'][date_property][0]['mainsnak']:
+        date_value = entity['claims'][date_property][0]['mainsnak']['datavalue']['value']['time']
         processed_year = get_year(date_value)
+
+        if global_dict['first_date']: #
+            print("Año: {}".format(processed_year)) #
+        global_dict['first_date'] = False #
+
         if processed_year in global_dict['year_dict']:
             id_list = global_dict['year_dict'][processed_year]
             if bibkg_id in id_list:
+                global_dict['count_date_coincidences'] += 1
                 return True
             else:
                 return False
@@ -203,7 +260,7 @@ def add_in_journal(entity, global_dict):
 def add_url(entity, global_dict):
     pass
 
-add_functions_list = [add_name, add_authors, add_date, add_pages]
+add_functions_list = [add_name, add_authors, add_date]
 compare_functions_list = [compare_date, compare_authors]
 
 def link_by_comparisons(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path, add_functions_list, compare_functions_list):
@@ -256,6 +313,11 @@ def link_by_comparisons(bibkg_path, bibkg_linked_path, wikidata_person_path, wik
 
     print("Comparando con entidades de Wikidata")
     count_links = 0
+    global_dict['count_total_entities'] = {}
+    global_dict['count_entities_rep'] = {}
+    count_total_entities = global_dict['count_total_entities']
+    global_dict['count_entities_one_name'] = 0
+    global_dict['count_names_id_list_up_zero'] = 0
     with open(wikidata_scholar_path, 'r') as wikidata_scholar:
         for linea in wikidata_scholar:
             entity = json.loads(linea)
@@ -263,8 +325,15 @@ def link_by_comparisons(bibkg_path, bibkg_linked_path, wikidata_person_path, wik
             names_id_list = compare_name(entity, global_dict)
             aliases_id_list = compare_aliases(entity, global_dict)
             names_id_list.update(aliases_id_list)
+            if len(names_id_list) == 1:
+                global_dict['count_entities_one_name'] += 1
             total_entities = []
+            n = len(names_id_list)
+            if n not in global_dict['count_entities_rep']:
+                global_dict['count_entities_rep'][n] = 0
+            global_dict['count_entities_rep'][n] += 1
             if len(names_id_list) > 0:
+                global_dict['count_names_id_list_up_zero'] += 1
                 for name_id in names_id_list:
                     parameters_boolean = True
                     for compare_function in compare_functions_list:
@@ -273,9 +342,41 @@ def link_by_comparisons(bibkg_path, bibkg_linked_path, wikidata_person_path, wik
                             break
                     if parameters_boolean:
                         total_entities.append(name_id)
-            if len(total_entities) == 1:
+            n_total_entities = len(total_entities)
+            if n_total_entities not in count_total_entities:
+                count_total_entities[n_total_entities] = 0
+            count_total_entities[n_total_entities] += 1
+            if n_total_entities == 1:
                 count_links += 1
 
-    print(count_links)
+    fin = time.time()
+
+    print("Guardando metadatos")
+
+    data = [
+        ['time_hours', 'linked_entities'], #, 'writed_linked_entities'],
+        [(fin - inicio)/3600, count_links] #, count_links_writed]
+    ]
+    csv_folder = "Link by comparisons/data/"
+    metadata_path = csv_folder + 'link-comparisons-metadata.csv'
+    with open(metadata_path, mode='w', newline='') as archivo_csv:
+        
+        # Crea el objeto de escritura de CSV
+        writer = csv.writer(archivo_csv)
+        
+        # Escriba los datos en el archivo CSV
+        for fila in data:
+            writer.writerow(fila)
+
+    print("Cantidad de entidades de Wikidata relacionadas con una misma entidad de BibKG: {}".format(count_total_entities))
+    print("Relaciones totales encontradas entre entidades: {}".format(count_links))
+    print("Coincidencias entre autores: {}".format(global_dict['count_authors_coincidences']))
+    print("Coincidencias entre fechas (años): {}".format(global_dict['count_date_coincidences']))
+
+    print("Total de combinaciones de autores relacionadas: {}".format(global_dict['authors_in']))
+    print("Total de entidades de BibKG con exactamente una entidad con el mismo nombre en Wikidata: {}".format(global_dict['count_entities_one_name']))
+    print("Total de entidades con más de una coincidencia entre nombres y aliases: {}".format(global_dict['count_names_id_list_up_zero']))
+    print(global_dict['count_entities_rep'])
+    print("Tiempo de ejecución: {} segundos".format(fin - inicio))
 
 link_by_comparisons(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path, add_functions_list, compare_functions_list)
