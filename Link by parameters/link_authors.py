@@ -62,7 +62,7 @@ def link_author(links_dict, bibkg_id, id, link_counts_dict):
     link_counts_dict[bibkg_id][id] += 1
 
 
-def link_authors(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path):
+def link_authors(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path, author_name_dict = author_name_dict):
     print("Almacenando nombres de autores en \"author_of\"")
 
     inicio = time.time()
@@ -253,41 +253,43 @@ def link_authors(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_s
     fin = time.time()
     print("Guardando metadatos")
 
-    data = [
-        ['time_hours', 'linked_entities', 'writed_linked_entities', 'total_author_entities_in_bibkg_publications', 'total_wikidata_string_authors'],
-        [(fin - inicio)/3600, count_links_dict, count_links_writed, len(total_authors_bibkg_dict), len(string_authors_dict)]
-    ]
-    csv_folder = "Link by parameters/data/"
-    metadata_path = csv_folder + 'link-authors-metadata.csv'
-    with open(metadata_path, mode='w', newline='') as archivo_csv:
+    # data = [
+    #     ['time_hours', 'linked_entities', 'writed_linked_entities', 'total_author_entities_in_bibkg_publications', 'total_wikidata_string_authors'],
+    #     [(fin - inicio)/3600, count_links_dict, count_links_writed, len(total_authors_bibkg_dict), len(string_authors_dict)]
+    # ]
+    # csv_folder = "Link by parameters/data/"
+    # metadata_path = csv_folder + 'link-authors-metadata.csv'
+    # with open(metadata_path, mode='w', newline='') as archivo_csv:
         
-        # Crea el objeto de escritura de CSV
-        writer = csv.writer(archivo_csv)
+    #     # Crea el objeto de escritura de CSV
+    #     writer = csv.writer(archivo_csv)
         
-        # Escriba los datos en el archivo CSV
-        for fila in data:
-            writer.writerow(fila)
+    #     # Escriba los datos en el archivo CSV
+    #     for fila in data:
+    #         writer.writerow(fila)
             
 
-    print("Total de publicaciones: {}".format(len(bibkg_publications_dict)))
-    print("Relaciones totales encontradas: {}".format(count_links))
-    print("Enlaces conectados sin considerar ya existentes: {}".format(count_links_dict))
-    print("Errores al encontrar al autor del has_author en Wikidata: {}".format(count_author_index_error))
-    print("Conteo de order en BibKG: {}".format(count_bibkg_order))
-    print("Conteo de order en Wikidata: {}".format(count_wikidata_order))
-    print("Conteo de errores de orden: {}".format(count_order_errors))
-    print("Conteo de autores con un orden asignado: {}".format(count_orders))
-    print("Total de strings de autores sin repetición: {}".format(len(string_authors_dict)))
-    print("Conteo de enlaces utilizando el parámetro de orden: {}".format(count_links_order))
-    print("Total de autores relacionados mediante orden, pero sin coincidir en los nombres: {}".format(count_not_links_order))
-    print("Errores de comparación con el número de orden: {}".format(count_order_number_error))
-    print("Total de autores de BibKG dentro de las entidades analizadas: {}".format(len(total_authors_bibkg_dict)))
-    print("Enlaces con más de 1 ID asociada: {}".format(count_repeated_id))
-    print("Enlaces sin utilizar el orden: {}".format(count_links_not_order))
+    # print("Total de publicaciones: {}".format(len(bibkg_publications_dict)))
+    # print("Relaciones totales encontradas: {}".format(count_links))
+    # print("Enlaces conectados sin considerar ya existentes: {}".format(count_links_dict))
+    # print("Errores al encontrar al autor del has_author en Wikidata: {}".format(count_author_index_error))
+    # print("Conteo de order en BibKG: {}".format(count_bibkg_order))
+    # print("Conteo de order en Wikidata: {}".format(count_wikidata_order))
+    # print("Conteo de errores de orden: {}".format(count_order_errors))
+    # print("Conteo de autores con un orden asignado: {}".format(count_orders))
+    # print("Total de strings de autores sin repetición: {}".format(len(string_authors_dict)))
+    # print("Conteo de enlaces utilizando el parámetro de orden: {}".format(count_links_order))
+    # print("Total de autores relacionados mediante orden, pero sin coincidir en los nombres: {}".format(count_not_links_order))
+    # print("Errores de comparación con el número de orden: {}".format(count_order_number_error))
+    # print("Total de autores de BibKG dentro de las entidades analizadas: {}".format(len(total_authors_bibkg_dict)))
+    # print("Enlaces con más de 1 ID asociada: {}".format(count_repeated_id))
+    # print("Enlaces sin utilizar el orden: {}".format(count_links_not_order))
 
-    print("Total de enlaces escritos: {}".format(count_links_writed))
+    # print("Total de enlaces escritos: {}".format(count_links_writed))
 
-    print("Tiempo estimado del proceso: {} segundos".format(fin - inicio))
+    print("Tiempo de ejecución de link_authors: {} segundos".format(fin - inicio))
+
+    return count_links_writed
 
 
 link_authors(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path)

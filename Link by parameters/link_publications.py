@@ -217,31 +217,33 @@ def link_publications(bibkg_path, bibkg_linked_path, wikidata_person_path, wikid
             bibkg_linked_publications.write("\n")
 
     fin = time.time()
-    print("Guardando metadatos")
+    # print("Guardando metadatos")
 
-    data = [
-        ['time_hours', 'linked_entities', 'writed_linked_entities'],
-        [(fin - inicio)/3600, count_links, count_links_writed]
-    ]
-    csv_folder = "Link by parameters/data/"
-    metadata_path = csv_folder + 'link-publications-metadata.csv'
-    with open(metadata_path, mode='w', newline='') as archivo_csv:
+    # data = [
+    #     ['time_hours', 'linked_entities', 'writed_linked_entities'],
+    #     [(fin - inicio)/3600, count_links, count_links_writed]
+    # ]
+    # csv_folder = "Link by parameters/data/"
+    # metadata_path = csv_folder + 'link-publications-metadata.csv'
+    # with open(metadata_path, mode='w', newline='') as archivo_csv:
         
-        # Crea el objeto de escritura de CSV
-        writer = csv.writer(archivo_csv)
+    #     # Crea el objeto de escritura de CSV
+    #     writer = csv.writer(archivo_csv)
         
-        # Escriba los datos en el archivo CSV
-        for fila in data:
-            writer.writerow(fila)
+    #     # Escriba los datos en el archivo CSV
+    #     for fila in data:
+    #         writer.writerow(fila)
             
 
-    print("Tiempo de ejecución: {} segundos".format(fin - inicio))
+    print("Tiempo de ejecución de link_publications: {} segundos".format(fin - inicio))
 
-    print("Relaciones totales encontradas: {}".format(count_links))
+    # print("Relaciones totales encontradas: {}".format(count_links))
 
-    print("Enlaces totales escritos en BibKG: {}".format(count_links_writed))
+    # print("Enlaces totales escritos en BibKG: {}".format(count_links_writed))
 
-    print("Entidades ya enlazadas previamente en BibKG: {}".format(count_already_linked))
+    # print("Entidades ya enlazadas previamente en BibKG: {}".format(count_already_linked))
+
+    return count_links_writed
             
 
 link_publications(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path)
