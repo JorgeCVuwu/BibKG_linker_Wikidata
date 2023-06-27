@@ -52,7 +52,7 @@ def link_author(links_dict, bibkg_id, id, link_counts_dict):
         link_counts_dict[bibkg_id][id] = 0
     link_counts_dict[bibkg_id][id] += 1
 
-def link_publications(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path):
+def link_publications(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data, writed_links_dict = {}, linked_method = "linked_by_id_propagation"):
 
     bibkg_publications_dict = {}
     wikidata_person_dict = {}
@@ -197,24 +197,24 @@ def link_publications(bibkg_path, bibkg_linked_path, wikidata_person_path, wikid
     print("Relaciones totales por nombre: {}".format(count_links_name))
     print("Relaciones totales por alias: {}".format(count_links_alias))
 
-    print("Escribiendo enlaces en BibKG")
+    print("Verificando enlaces ya existentes en BibKG")
 
     count_links_writed = 0
     count_already_linked = 0
 
-    with open(bibkg_path, 'r') as bibkg, open(bibkg_linked_path, 'w') as bibkg_linked_publications:
+    with open(bibkg_path, 'r') as bibkg:
         for linea in bibkg:
             entity = json.loads(linea)
             id = entity['id']
             if id in links_dict:
-                if 'wikidata' not in entity:
+                if 'wikidata' not in entity and id not in writed_links_dict:
                     wikidata_id = links_dict[id]
-                    entity['wikidata'] = wikidata_id
+                    writed_links_dict[id] = wikidata_id
+                    csv_data.append([id, wikidata_id, linked_method])
+                    del links_dict[id]
                     count_links_writed += 1
                 else:
                     count_already_linked += 1
-            json.dump(entity, bibkg_linked_publications)
-            bibkg_linked_publications.write("\n")
 
     fin = time.time()
     # print("Guardando metadatos")
@@ -243,7 +243,7 @@ def link_publications(bibkg_path, bibkg_linked_path, wikidata_person_path, wikid
 
     # print("Entidades ya enlazadas previamente en BibKG: {}".format(count_already_linked))
 
-    return count_links_writed
+    return writed_links_dict, count_links_writed, csv_data
             
 
 link_publications(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path)

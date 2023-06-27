@@ -120,7 +120,7 @@ def reduce_entity(entity):
                     #P1545: orden del autor
                     if "P1545" in objeto["qualifiers"]:
                         try:
-                            new_object['order'] = objeto["qualifiers"]["P1545"][0]["datavalue"]["value"]
+                            new_object['order'] = objeto["qualifiers"]["P1545"][0]["datavalue"]["value"] #####
                         except:
                             count_order_errors += 1
                             #print(id)
@@ -293,7 +293,6 @@ with gzip.open(path, 'rt', encoding='utf-8') as file, open(wikidata_person_url, 
                 #Procesar personas de Wikidata
                 if human in instances_list:
                     if not empty_person:
-                        #wikidata_person.write(",")
                         wikidata_person.write("\n")
                     human_dict = {'id':id, 'name':name}
                     description = filter_descriptions(entity)

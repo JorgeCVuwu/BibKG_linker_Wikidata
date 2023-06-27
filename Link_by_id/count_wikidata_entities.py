@@ -4,7 +4,7 @@ import os
 json_folder = "db/JSON/"
 bibkg_path = json_folder + "bibkg.json"
 carpeta_externa = "D:\Memoria" 
-wikidata_scholar_name = "wikidata_scholar.json"
+wikidata_scholar_name = "wikidata_scholar_4.json"
 wikidata_person_name = "wikidata_person.json"
 wikidata_else_name = "wikidata_else.json"
 
@@ -21,11 +21,15 @@ with open(wikidata_scholar_path, 'r') as wikidata_person:
         entity = json.loads(linea)
         id = entity['id']
         claims = entity['claims']
-        if 'aliases' in entity:
-            print(id)
-            print(entity['aliases'])
-            c+= 1
-            if c > 10:
+        if 'P50' in claims:
+            for author in claims['P50']:
+                if 'order' in author:
+                    print(id)
+                    print(claims['P50'])
+                    c+= 1
+                    break
+                    
+            if c > 2:
                 break
 print(count_doi)
 print(count_not_doi)

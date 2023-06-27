@@ -263,9 +263,11 @@ def add_url(entity, global_dict):
 add_functions_list = [add_name, add_authors, add_date]
 compare_functions_list = [compare_date, compare_authors]
 
-def link_by_comparisons(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path, add_functions_list, compare_functions_list):
+def link_by_comparisons(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data, writed_links_dict = {}, add_functions_list= add_functions_list, compare_functions_list = compare_functions_list):
 
     inicio = time.time()
+
+    links_dict = {}
 
     print("Almacenando personas de BibKG")
 
@@ -347,7 +349,23 @@ def link_by_comparisons(bibkg_path, bibkg_linked_path, wikidata_person_path, wik
                 count_total_entities[n_total_entities] = 0
             count_total_entities[n_total_entities] += 1
             if n_total_entities == 1:
+                links_dict[total_entities[0]] = id
                 count_links += 1
+
+    print("Analizando enlaces en BibKG")
+
+    count_links_writed = 0
+
+    with open(bibkg_path, 'r') as bibkg:
+        for linea in bibkg:
+            entity = json.loads(linea)
+            id = entity['id']
+            if id in links_dict and 'wikidata' not in entity:
+                wikidata_id = links_dict[id]
+                writed_links_dict[id] = wikidata_id
+                csv_data.append([id, wikidata_id, 'linked_by_comparisons'])
+                del wikidata_id
+                count_links_writed += 1
 
     fin = time.time()
 
@@ -376,7 +394,9 @@ def link_by_comparisons(bibkg_path, bibkg_linked_path, wikidata_person_path, wik
     print("Total de combinaciones de autores relacionadas: {}".format(global_dict['authors_in']))
     print("Total de entidades de BibKG con exactamente una entidad con el mismo nombre en Wikidata: {}".format(global_dict['count_entities_one_name']))
     print("Total de entidades con más de una coincidencia entre nombres y aliases: {}".format(global_dict['count_names_id_list_up_zero']))
-    print(global_dict['count_entities_rep'])
+    #print(global_dict['count_entities_rep'])
     print("Tiempo de ejecución: {} segundos".format(fin - inicio))
+
+    return writed_links_dict, count_links_writed, csv_data
 
 link_by_comparisons(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path, add_functions_list, compare_functions_list)

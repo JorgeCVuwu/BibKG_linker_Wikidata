@@ -10,8 +10,8 @@ bibkg_names_path = json_folder + "bibkg_person_name.json"
 bibkg_linked_path = json_folder + "bibkg linked authors.json"
 
 carpeta_externa = "D:\Memoria" 
-wikidata_person_name = "wikidata_person_3.json"
-wikidata_scholar_name = "wikidata_scholar_3.json"
+wikidata_person_name = "wikidata_person_4.json"
+wikidata_scholar_name = "wikidata_scholar_4.json"
 
 wikidata_person_path = os.path.join(carpeta_externa, wikidata_person_name)
 wikidata_scholar_path = os.path.join(carpeta_externa, wikidata_scholar_name)
@@ -51,9 +51,13 @@ with open(bibkg_path, 'r') as bibkg:
             if entity_type == 'Person':
                 author_name_dict[id] = entity['name']
 
-def link_author(links_dict, bibkg_id, id, link_counts_dict):
-    if bibkg_id not in links_dict:
+def link_author(links_dict, bibkg_id, id, link_counts_dict, banlist_dict):
+    if bibkg_id not in links_dict and bibkg_id not in banlist_dict:
         links_dict[bibkg_id] = id
+    #Si una entidad es relacionada con otra entidad a la ya asociada, se elimina la asociación
+    elif links_dict[bibkg_id] != id:
+        banlist_dict[bibkg_id] = True
+        del links_dict[bibkg_id]
 
     if bibkg_id not in link_counts_dict:
         link_counts_dict[bibkg_id] = {}
@@ -62,7 +66,7 @@ def link_author(links_dict, bibkg_id, id, link_counts_dict):
     link_counts_dict[bibkg_id][id] += 1
 
 
-def link_authors(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path, author_name_dict = author_name_dict):
+def link_authors(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data, writed_links_dict = {}, linked_method = "linked_by_id_propagation", author_name_dict = author_name_dict):
     print("Almacenando nombres de autores en \"author_of\"")
 
     inicio = time.time()
@@ -74,7 +78,6 @@ def link_authors(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_s
     wikidata_author_string_property = 'P2093'
 
     links_dict = {}
-    links_string_dict = {}
     link_counts_dict = {}
     total_authors_bibkg_dict = {}
     string_authors_dict = {}
@@ -126,6 +129,7 @@ def link_authors(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_s
     c = 0
     break_condition = False
     with open(wikidata_scholar_path, 'r') as wikidata_scholar:
+        banlist_dict = {}
         for linea in wikidata_scholar:
             entity = json.loads(linea)
             wikidata_id = entity['id']
@@ -181,7 +185,7 @@ def link_authors(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_s
                             order_in_wikidata = True
                             wikidata_author_id = author['mainsnak']['datavalue']['value']
                             try:
-                                wikidata_author_order = author['order'][0]['datavalue']['value']
+                                wikidata_author_order = author['order']
                                 count_orders += 1
                                 #print("a")
                             except:
@@ -205,13 +209,13 @@ def link_authors(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_s
                                     name_order = order_list_bibkg[wikidata_author_order]
                                     if name_order in author_names_list_bibkg:
                                         bibkg_id = author_names_list_bibkg[name_order]
-                                        link_author(links_dict, bibkg_id, id, link_counts_dict)
+                                        link_author(links_dict, bibkg_id, id, link_counts_dict, banlist_dict)
                                         count_links+=1
                                         count_links_order += 1
                                     else:
                                         if wikidata_author_name in author_names_list_bibkg:
                                             bibkg_id = author_names_list_bibkg[wikidata_author_name]
-                                            link_author(links_dict, bibkg_id, id, link_counts_dict)
+                                            link_author(links_dict, bibkg_id, id, link_counts_dict, banlist_dict)
                                             count_links += 1
                                         count_not_links_order += 1
                                 except:
@@ -220,7 +224,7 @@ def link_authors(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_s
                             else:
                                 if wikidata_author_name in author_names_list_bibkg:
                                     bibkg_id = author_names_list_bibkg[wikidata_author_name]
-                                    link_author(links_dict, bibkg_id, id, link_counts_dict)
+                                    link_author(links_dict, bibkg_id, id, link_counts_dict, banlist_dict)
                                     count_links += 1
                                     count_links_not_order += 1
 
@@ -237,28 +241,28 @@ def link_authors(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_s
 
     count_links_writed = 0
 
-    print("Escribiendo enlaces en BibKG")
+    print("Verificando enlaces ya existentes en BibKG")
 
-    with open(bibkg_path, 'r') as bibkg, open(bibkg_linked_path, 'w') as bibkg_linked_authors:
+    with open(bibkg_path, 'r') as bibkg:
         for linea in bibkg:
             entity = json.loads(linea)
             id = entity['id']
-            if id in links_dict and 'wikidata' not in entity:
+            if id in links_dict and 'wikidata' not in entity and id not in writed_links_dict:
                 wikidata_id = links_dict[id]
-                entity['wikidata'] = wikidata_id
+                writed_links_dict[id] = wikidata_id
+                del wikidata_id
                 count_links_writed += 1
-            json.dump(entity, bibkg_linked_authors)
-            bibkg_linked_authors.write("\n")
+                csv_data.append([id, wikidata_id, linked_method])
 
     fin = time.time()
-    print("Guardando metadatos")
+    # print("Guardando metadatos")
 
     # data = [
     #     ['time_hours', 'linked_entities', 'writed_linked_entities', 'total_author_entities_in_bibkg_publications', 'total_wikidata_string_authors'],
     #     [(fin - inicio)/3600, count_links_dict, count_links_writed, len(total_authors_bibkg_dict), len(string_authors_dict)]
     # ]
     # csv_folder = "Link by parameters/data/"
-    # metadata_path = csv_folder + 'link-authors-metadata.csv'
+    # metadata_path = csv_folder + 'link-authors-metadata-2.csv'
     # with open(metadata_path, mode='w', newline='') as archivo_csv:
         
     #     # Crea el objeto de escritura de CSV
@@ -289,7 +293,7 @@ def link_authors(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_s
 
     print("Tiempo de ejecución de link_authors: {} segundos".format(fin - inicio))
 
-    return count_links_writed
+    return writed_links_dict, count_links_writed, csv_data
 
 
-link_authors(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path)
+link_authors(bibkg_path, wikidata_person_path, wikidata_scholar_path)

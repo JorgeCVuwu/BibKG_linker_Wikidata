@@ -25,19 +25,19 @@ count_links_writed = 1
 
 total_recursions = 0
 
+writed_links_dict = {}
+
 inicio = time.time()
 
 while count_links_writed != 0:
 
-    count_links_writed = link_authors(bibkg_path, bibkg_linked_path_authors, wikidata_person_path, wikidata_scholar_path)
+    writed_links_dict, count_links_writed = link_authors(bibkg_path, wikidata_person_path, wikidata_scholar_path, writed_links_dict)
     total_links_writed += count_links_writed
 
     print("Enlaces escritos por link_authors: {}".format(count_links_writed))
 
-    count_links_writed = link_publications(bibkg_linked_path_authors, bibkg_linked_path_publications, wikidata_person_path, wikidata_scholar_path)
+    writed_links_dict, count_links_writed = link_publications(bibkg_path, wikidata_person_path, wikidata_scholar_path, writed_links_dict)
     total_links_writed += count_links_writed
-
-    bibkg_path = bibkg_linked_path_publications
 
     print("Enlaces escritos por link_publications: {}".format(count_links_writed))
 
@@ -53,6 +53,25 @@ data = [
 ]
 csv_folder = "Link by parameters/data/"
 metadata_path = csv_folder + 'link-recursion-metadata.csv'
+with open(metadata_path, mode='w', newline='') as archivo_csv:
+    
+    # Crea el objeto de escritura de CSV
+    writer = csv.writer(archivo_csv)
+    
+    # Escriba los datos en el archivo CSV
+    for fila in data:
+        writer.writerow(fila)
+
+print("Guardando CSV de enlaces de BibKG")
+
+data = [
+    ['entity_id', 'tipo', 'wikidata_id', 'link_method']
+]
+
+for key, value in writed_links_dict.items():
+    row = [key, value, '', '']
+
+metadata_path = carpeta_externa + 'recursion-linked-entities.csv'
 with open(metadata_path, mode='w', newline='') as archivo_csv:
     
     # Crea el objeto de escritura de CSV
