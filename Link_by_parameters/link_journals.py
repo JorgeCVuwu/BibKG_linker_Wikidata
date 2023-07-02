@@ -17,7 +17,7 @@ wikidata_scholar_name = "wikidata_scholar_3.json"
 wikidata_person_path = os.path.join(carpeta_externa, wikidata_person_name)
 wikidata_scholar_path = os.path.join(carpeta_externa, wikidata_scholar_name)
 
-def link_journals(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path):
+def link_journals(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data, writed_links_dict = {}, linked_method = "linked_by_id_journal_propagation"):
     bibkg_publications_dict = {}
     wikidata_person_dict = {}
 
@@ -41,10 +41,15 @@ def link_journals(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_
         for linea in bibkg:
             entity = json.loads(linea)
             id = entity['id']
-            if 'wikidata' in entity and 'in_journal' in entity:
+            if 'in_journal' in entity:
+                wikidata_id = ''
+                if 'wikidata' in entity:
+                    wikidata_id = entity['wikidata']
+                elif id in writed_links_dict:
+                    wikidata_id = writed_links_dict[id]
                 entity_journal = entity['in_journal']
-                wikidata_id = entity['wikidata']
-                bibkg_publications_dict[wikidata_id] = {'id':id,'in_journal':entity_journal}
+                if wikidata_id:    
+                    bibkg_publications_dict[wikidata_id] = {'id':id,'in_journal':entity_journal}
 
     print("Comparando journals en Wikidata")
 
@@ -103,16 +108,16 @@ def link_journals(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_
     print("Escribiendo enlaces en BibKG")
 
 
-    with open(bibkg_path, 'r') as bibkg, open(bibkg_linked_path, 'w') as bibkg_linked_journals:
+    with open(bibkg_path, 'r') as bibkg:
         for linea in bibkg:
             entity = json.loads(linea)
             id = entity['id']
-            if id in links_dict and 'wikidata' not in entity:
+            if id in links_dict and 'wikidata' not in entity and id not in writed_links_dict:
                 wikidata_id = links_dict[id]
-                entity['wikidata'] = wikidata_id
+                writed_links_dict[id] = wikidata_id
+                del links_dict[id]
                 count_links_writed += 1
-            json.dump(entity, bibkg_linked_journals)
-            bibkg_linked_journals.write("\n")
+                csv_data.append([id, wikidata_id, linked_method])
 
     fin = time.time()
     print("Guardando metadatos")
@@ -123,14 +128,14 @@ def link_journals(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_
     ]
     csv_folder = "Link by parameters/data/"
     metadata_path = csv_folder + 'link-journals-metadata.csv'
-    with open(metadata_path, mode='w', newline='') as archivo_csv:
+    # with open(metadata_path, mode='w', newline='') as archivo_csv:
         
-        # Crea el objeto de escritura de CSV
-        writer = csv.writer(archivo_csv)
+    #     # Crea el objeto de escritura de CSV
+    #     writer = csv.writer(archivo_csv)
         
-        # Escriba los datos en el archivo CSV
-        for fila in data:
-            writer.writerow(fila)
+    #     # Escriba los datos en el archivo CSV
+    #     for fila in data:
+    #         writer.writerow(fila)
 
     print("Total de entidades de Wikidata enlazados: {}".format(len(error_dict)))
     print("Total de enlaces encontrados: {}".format(count_links))        
@@ -141,4 +146,6 @@ def link_journals(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_
 
     print("Tiempo estimado del proceso: {} segundos".format(fin - inicio))
 
-link_journals(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path)
+    return writed_links_dict, count_links_writed, csv_data
+
+#link_journals(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path)

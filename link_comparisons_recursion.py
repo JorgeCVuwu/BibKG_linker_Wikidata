@@ -2,6 +2,7 @@ import os
 import csv
 import time
 from Link_by_id.link_by_id import link_by_id
+from Link_by_parameters.link_journals import link_journals
 from Link_by_parameters.link_authors import link_authors
 from Link_by_parameters.link_publications import link_publications
 from Link_by_comparisons.link_by_comparisons import link_by_comparisons
@@ -39,6 +40,13 @@ with open(metadata_path, mode='w', newline='') as archivo_csv:
     print("Enlazamiento por ID completado")
     print("Enlaces escritos conseguidos: {}".format(count_links_writed))
     print("Enlaces totales hasta el momento: {}".format(total_links_writed))
+    
+    writed_links_dict, count_links_writed, csv_data = link_journals(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data, writed_links_dict)
+    total_links_writed += count_links_writed
+
+    print("Enlazamiento por journals de IDs completado")
+    print("Enlaces escritos conseguidos: {}".format(count_links_writed))
+    print("Enlaces totales hasta el momento: {}".format(total_links_writed))
 
     count_links_writed = 1
 
@@ -58,6 +66,13 @@ with open(metadata_path, mode='w', newline='') as archivo_csv:
 
         total_recursions += 1
 
+    writed_links_dict, count_links_writed, csv_data = link_journals(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data, writed_links_dict, "linked_by_id_recursion_journal_propagation")
+    total_links_writed += count_links_writed
+
+    print("Enlazamiento por journals de iteracion de recursion de IDs completado")
+    print("Enlaces escritos conseguidos: {}".format(count_links_writed))
+    print("Enlaces totales hasta el momento: {}".format(total_links_writed))
+
     print("Iniciando fase de enlazamiento por comparaciones de propiedades")
 
     writed_links_dict, count_links_writed, csv_data = link_by_comparisons(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data, writed_links_dict)
@@ -66,6 +81,14 @@ with open(metadata_path, mode='w', newline='') as archivo_csv:
     print("Enlaces totales hasta el momento: {}".format(total_links_writed))
 
     count_links_writed = 1
+
+
+    writed_links_dict, count_links_writed, csv_data = link_journals(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data, writed_links_dict, "linked_by_comparisons_journal_propagation")
+    total_links_writed += count_links_writed
+
+    print("Enlazamiento por journals de comparaciones completado")
+    print("Enlaces escritos conseguidos: {}".format(count_links_writed))
+    print("Enlaces totales hasta el momento: {}".format(total_links_writed))
 
     print("Iniciando bucle a partir de enlaces por comparaciones:")
     while count_links_writed != 0:
@@ -83,6 +106,13 @@ with open(metadata_path, mode='w', newline='') as archivo_csv:
         print("Enlaces totales hasta el momento: {}".format(total_links_writed))
 
         total_recursions += 1
+
+    writed_links_dict, count_links_writed, csv_data = link_journals(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data, writed_links_dict, "linked_by_comparisons_recursion_journal_propagation")
+    total_links_writed += count_links_writed
+
+    print("Enlazamiento por journals de comparaciones completado")
+    print("Enlaces escritos conseguidos: {}".format(count_links_writed))
+    print("Enlaces totales hasta el momento: {}".format(total_links_writed))
 
     fin = time.time()
 

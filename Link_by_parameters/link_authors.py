@@ -99,8 +99,11 @@ def link_authors(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_da
             if 'type' not in entity:
                 continue
             type = entity['type']
-            if 'wikidata' in entity and 'has_author' in entity and type != 'Person':
-                wikidata_id = entity['wikidata']
+            if ('wikidata' in entity or id in writed_links_dict) and 'has_author' in entity and type != 'Person':
+                try:
+                    wikidata_id = writed_links_dict[id]
+                except:
+                    wikidata_id = entity['wikidata']
                 for author in entity['has_author']:
                     author_id = author['value']
                     try:
@@ -250,7 +253,7 @@ def link_authors(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_da
             if id in links_dict and 'wikidata' not in entity and id not in writed_links_dict:
                 wikidata_id = links_dict[id]
                 writed_links_dict[id] = wikidata_id
-                del wikidata_id
+                del links_dict[id]
                 count_links_writed += 1
                 csv_data.append([id, wikidata_id, linked_method])
 
@@ -296,4 +299,4 @@ def link_authors(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_da
     return writed_links_dict, count_links_writed, csv_data
 
 
-link_authors(bibkg_path, wikidata_person_path, wikidata_scholar_path)
+#link_authors(bibkg_path, wikidata_person_path, wikidata_scholar_path, [])

@@ -63,6 +63,8 @@ def link_publications(bibkg_path, wikidata_person_path, wikidata_scholar_path, c
     link_counts_dict = {}
     count_links = 0
 
+    banlist = {}
+
     inicio = time.time()
 
     print("Almacenando autores de BibKG")
@@ -75,9 +77,13 @@ def link_publications(bibkg_path, wikidata_person_path, wikidata_scholar_path, c
             id = entity['id']
             if 'type' in entity:
                 entity_type = entity['type']
-                if entity_type == 'Person' and 'wikidata' in entity:
+                if entity_type == 'Person' and ('wikidata' in entity or id in writed_links_dict):
                     author_name_dict[id] = {'id':id, 'name':entity['name'], 'publications':{}}
-                    author_wikidata_id_dict[entity['wikidata']] = author_name_dict[id]
+                    try:
+                        wikidata_id = entity['wikidata']
+                    except:
+                        wikidata_id = writed_links_dict[id] 
+                    author_wikidata_id_dict[wikidata_id] = author_name_dict[id]
                     
 
     print("Almacenando publicaciones de BibKG en autores")
@@ -190,6 +196,8 @@ def link_publications(bibkg_path, wikidata_person_path, wikidata_scholar_path, c
                     elif 'aliases' in bibkg_publication:
                         bibkg_aliases = bibkg_publication['aliases']
                         if value['name'] in bibkg_aliases:
+                            if bibkg_key in links_dict and links_dict[bibkg_key] != wikidata_key:
+                                banlist[bibkg_key] = True
                             links_dict[bibkg_key] = wikidata_key
                             count_links_alias += 1
                             count_links += 1                        
@@ -207,7 +215,7 @@ def link_publications(bibkg_path, wikidata_person_path, wikidata_scholar_path, c
             entity = json.loads(linea)
             id = entity['id']
             if id in links_dict:
-                if 'wikidata' not in entity and id not in writed_links_dict:
+                if 'wikidata' not in entity and id not in writed_links_dict and id not in banlist:
                     wikidata_id = links_dict[id]
                     writed_links_dict[id] = wikidata_id
                     csv_data.append([id, wikidata_id, linked_method])
@@ -246,4 +254,4 @@ def link_publications(bibkg_path, wikidata_person_path, wikidata_scholar_path, c
     return writed_links_dict, count_links_writed, csv_data
             
 
-link_publications(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path)
+#link_publications(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path)

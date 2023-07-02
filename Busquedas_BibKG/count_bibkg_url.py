@@ -3,8 +3,8 @@ import time
 
 def process_url(url):
     #print(url)
-    if 'anthology' in url:
-        print(url)
+    # if 'anthology' in url:
+    #     print(url)
     split = url.split('/')
     if split[0] != 'db':
         return False
@@ -37,6 +37,8 @@ count_type_dict = {}
 count_type_url_dict = {}
 
 count_dict_url_start = {}
+
+count_url_db = {}
 inicio = time.time()
 with open(bibkg_url, 'r') as bibkg:
     for linea in bibkg:
@@ -52,9 +54,8 @@ with open(bibkg_url, 'r') as bibkg:
             #print(entity)
             try:
                 sumar_dict(count_type_url_dict, type)
-                processed_url = process_url(entity[':url'][0]['value'])
-                if processed_url:
-                    sumar_dict(count_dict_url_start, processed_url.split('/')[0])
+                if entity[':url'][0]['value'][0:3] == 'db/':
+                    sumar_dict(count_url_db, type)
             except Exception as e:
                 print(e)
                 print(entity)
@@ -67,7 +68,12 @@ print("Tiempo de ejecución: {} segundos".format(fin - inicio))
 print(count_type_dict)
 print(count_type_url_dict)
 print(count_dict_url_start)
+print(count_url_db)
 
+total_db = 0
+for key, value in count_url_db.items():
+    total_db += value
+print(total_db)
 
 
 

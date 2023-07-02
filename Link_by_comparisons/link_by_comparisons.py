@@ -76,9 +76,6 @@ def add_property(entity, global_dict, property):
             property_dict[property_value] = set()
         property_dict[property_value].add(id)
 
-        if global_dict['first_property'] and property_value and property == "year": #
-            print("Año de BibKG:{}".format(property_value)) #
-            global_dict['first_property'] = False #
 
 def add_name(entity, global_dict):
     add_property(entity, global_dict, "name")
@@ -136,7 +133,8 @@ def add_authors(entity, global_dict):
         author_dict[author_key].add(id)
 
         if global_dict['first_author']: #
-            print("Author de BibKG: {}".format(author_key)) #
+            #print("Author de BibKG: {}".format(author_key)) #
+            pass
         global_dict['first_author'] = False #
 
 def compare_authors(entity, global_dict, bibkg_id):
@@ -164,7 +162,8 @@ def compare_authors(entity, global_dict, bibkg_id):
                     author_value = process_names(global_dict['wikidata_person'][author_id])
                     author_order = author_object['order']
                     if author_order == 0:
-                        print(author_object)
+                        pass
+                        #print(author_object)
                     authors_entities_dict[author_order] = author_value
                 except:
                     pass
@@ -197,11 +196,11 @@ def compare_authors(entity, global_dict, bibkg_id):
         authors += value + '_' + order
 
     if global_dict['first_author_w'] and (property in claims or author_string_property in claims): #
-        print(entity['claims']) #
-        print(entity['id']) #
-        print(authors_entities_dict) #
-        print(authors) #
-        print("Autores de Wikidata: {}".format(authors)) #
+        #print(entity['claims']) #
+        #print(entity['id']) #
+        #print(authors_entities_dict) #
+        #print(authors) #
+        #print("Autores de Wikidata: {}".format(authors)) #
         global_dict['first_author_w'] = False #
     
     if authors in global_dict['author_dict']:
@@ -237,7 +236,8 @@ def compare_date(entity, global_dict, bibkg_id):
         processed_year = get_year(date_value)
 
         if global_dict['first_date']: #
-            print("Año: {}".format(processed_year)) #
+            pass
+            #print("Año: {}".format(processed_year)) #
         global_dict['first_date'] = False #
 
         if processed_year in global_dict['year_dict']:
@@ -258,9 +258,25 @@ def add_in_journal(entity, global_dict):
     #add_property(entity, global_dict, "in_journal")
 
 def add_url(entity, global_dict):
-    pass
+    add_property(entity, global_dict, 'url')
 
-add_functions_list = [add_name, add_authors, add_date]
+def compare_url(entity, global_dict):
+    id = entity['id']
+    return_id_list = set()
+    official_website = 'P856'
+    full_work_at_url = 'P953'
+    if full_work_at_url in entity:
+        property_value = entity[full_work_at_url]
+        if property_value in global_dict['url_dict']:
+            return_id_list.update(global_dict['url_dict'][property_value])
+    if official_website in entity:
+        property_value = entity[official_website]
+        if property_value in global_dict['url_dict']:
+            return_id_list.update(global_dict['url_dict'][property_value])
+
+    return return_id_list
+
+add_functions_list = [add_name, add_authors, add_date, add_url]
 compare_functions_list = [compare_date, compare_authors]
 
 def link_by_comparisons(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data, writed_links_dict = {}, add_functions_list= add_functions_list, compare_functions_list = compare_functions_list):
@@ -326,7 +342,9 @@ def link_by_comparisons(bibkg_path, wikidata_person_path, wikidata_scholar_path,
             id = entity['id']
             names_id_list = compare_name(entity, global_dict)
             aliases_id_list = compare_aliases(entity, global_dict)
+            url_id_list = compare_url(entity, global_dict)
             names_id_list.update(aliases_id_list)
+            names_id_list.update(url_id_list)
             if len(names_id_list) == 1:
                 global_dict['count_entities_one_name'] += 1
             total_entities = []
@@ -375,7 +393,7 @@ def link_by_comparisons(bibkg_path, wikidata_person_path, wikidata_scholar_path,
         ['time_hours', 'linked_entities'], #, 'writed_linked_entities'],
         [(fin - inicio)/3600, count_links] #, count_links_writed]
     ]
-    csv_folder = "Link by comparisons/data/"
+    csv_folder = "Link_by_comparisons/data/"
     metadata_path = csv_folder + 'link-comparisons-metadata.csv'
     with open(metadata_path, mode='w', newline='') as archivo_csv:
         
@@ -399,4 +417,4 @@ def link_by_comparisons(bibkg_path, wikidata_person_path, wikidata_scholar_path,
 
     return writed_links_dict, count_links_writed, csv_data
 
-link_by_comparisons(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path, add_functions_list, compare_functions_list)
+#link_by_comparisons(bibkg_path, bibkg_linked_path, wikidata_person_path, wikidata_scholar_path, add_functions_list, compare_functions_list)
