@@ -6,7 +6,7 @@ import os
 import csv
 
 json_folder = "db/JSON/"
-bibkg_path = json_folder + "bibkg linked by id.json"
+bibkg_path = json_folder + "bibkg.json"
 bibkg_names_path = json_folder + "bibkg_person_name.json"
 
 carpeta_externa = "D:\Memoria" 

@@ -1,9 +1,9 @@
 import os
 import csv
 import time
-from Link_by_id import link_by_id
-from Link_by_parameters import link_journals, link_authors, link_publications
-from Link_by_comparisons import link_by_comparisons
+from Link_by_id import link_by_id_2
+from Link_by_parameters import link_by_parameters
+# from Link_by_comparisons import link_by_comparisons
 
 #WikidataLinker: clase encargada de enlazar el JSON de BibKG con el archivo preprocesado de Wikidata
 class WikidataLinker:
@@ -24,14 +24,11 @@ class WikidataLinker:
         self.writed_links_dict = {}
         self.forbidden_links_dict = {}
 
-        self.time = 0
-
-    #set_csv_data: inserta los parametros a insertar en el archivo CSV de los datos principales
-    def set_csv_data(self, parameters_list):
         self.csv_data = [
-            [parameters_list]
-            #['entity_id', 'wikidata_id', 'link_method']
+            ['entity_id', 'wikidata_id', 'link_method']
         ]
+
+        self.time = 0
 
     #save_metadata_csv: guarda los metadatos del proceso (datos principales relacionados a la ejecución del proceso)
     def save_metadata_csv(self):
@@ -55,38 +52,12 @@ class WikidataLinker:
 
     
     def link_by_id(self):
-        doi_prefix = 'doi.org/'
-        arxiv_prefix = 'arxiv.org/abs/'
-        ieeexplore_prefix = 'ieeexplore.ieee.org/'
-        handle_prefix = 'hdl.handle.net/'
-        dnb_prefix = 'd-nb.info/'
-        acm_prefix = 'dl.acm.org/'
-        ethos_prefix = 'ethos.bl.uk/'
-
-
-        doi_dict = {}
-        arxiv_dict = {}
-        dblp_dict = {}
-        ieee_dict = {}
-        handle_dict = {}
-        dnb_dict = {}
-        acm_dict = {}
-        ethos_dict = {}
-        isbn_dict = {}
-
-        dblp_event_dict = {}
-        dblp_venue_dict = {}
-        dblp_publication_dict = {}
-
-        dblp_person_dict = {}
-        scholar_dict = {}
-        orcid_dict = {}
-
-
+        id_linker = link_by_id_2.LinkByID()
+        id_linker.link_by_id(self)
 
     def link_by_parameters(self):
-        pass
-        #link_by_parameters.link_by_parameters(self)
+        id_linker = link_by_parameters.LinkByParameters()
+        id_linker.link_by_parameters(self)
 
     def link_by_comparisons(self):
         pass
@@ -110,12 +81,13 @@ if __name__ == "__main__":
     #Flujo de enlazamiento
 
     wikidata_linker.link_by_id()
+    print(len(wikidata_linker.writed_links_dict))
 
-    while wikidata_linker.method_writed_links != 0:
-        wikidata_linker.link_by_parameters()
+    # while wikidata_linker.method_writed_links != 0:
+    #     wikidata_linker.link_by_parameters()
 
-    wikidata_linker.link_by_comparisons()
+    # wikidata_linker.link_by_comparisons()
 
-    while wikidata_linker.method_writed_links != 0:
-        wikidata_linker.link_by_parameters()
+    # while wikidata_linker.method_writed_links != 0:
+    #     wikidata_linker.link_by_parameters()
     
