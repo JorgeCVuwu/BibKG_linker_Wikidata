@@ -31,7 +31,7 @@ csv_data = [
 
 inicio = time.time()
 
-metadata_path = carpeta_externa + 'recursion-linked-entities.csv'
+metadata_path = os.path.join(carpeta_externa, 'recursion-linked-entities.csv')
 with open(metadata_path, mode='w', newline='') as archivo_csv:
 
     writed_links_dict, count_links_writed, csv_data = link_by_id(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data, writed_links_dict)
