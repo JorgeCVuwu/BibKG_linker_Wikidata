@@ -32,7 +32,10 @@ def detect_page(url):
 #class LinkByID(WikidataLinker):
 class LinkByID():
 
-    def __init__(self):
+    def __init__(self, wikidata_linker):
+
+        self.wikidata_linker = wikidata_linker
+
         self.doi_dict = {}
         self.arxiv_dict = {}
         self.dblp_dict = {}
@@ -85,10 +88,10 @@ class LinkByID():
                                         isbn_properties[1]:{'name':'ISBN-13','dict':self.isbn_dict,'count-links':0, 'count-total':0}}
 
 
-
-    def process_dblp_url(self):
+    #funciones process: ajustan el formato del string de la ID de BibKG de cada tipo para poder compararse con Wikidata
+    def process_dblp_url(self, entity):
         #print(url)
-        url = self.entity[':url'][0]['value']
+        url = entity[':url'][0]['value']
         split = url.split('/')
         if split[0] != 'db':
             return False
@@ -105,59 +108,61 @@ class LinkByID():
         #dblp_dict[dblp_id] = id
         add_to_dict(self.dblp_dict, dblp_id, id)
 
-    def process_doi(self, ee):
+    def process_doi(self, ee, id):
         doi_prefix = 'doi.org/'
         doi_suffix = ee.split(doi_prefix, 1)[1]
         #doi_dict[doi_suffix] = id
-        add_to_dict(self.doi_dict, doi_suffix.upper(), self.id)
+        add_to_dict(self.doi_dict, doi_suffix.upper(), id)
 
-    def process_arxiv(self, ee):
+    def process_arxiv(self, ee, id):
         arxiv_prefix = 'arxiv.org/abs/'
         try:
             arxiv_suffix = ee.split(arxiv_prefix, 1)[1]
             #arxiv_dict[arxiv_suffix] = id
-            add_to_dict(self.arxiv_dict, arxiv_suffix, self.id)
+            add_to_dict(self.arxiv_dict, arxiv_suffix, id)
         except:
             pass
 
-    def process_ieeexplore(self, ee):
+    def process_ieeexplore(self, ee, id):
         ieee_suffix = ee.split('/')[-2]
         #ieee_dict[ieee_suffix] = id
-        add_to_dict(self.ieee_dict, ieee_suffix, self.id)
+        add_to_dict(self.ieee_dict, ieee_suffix, id)
 
-    def process_handle(self, ee):
+    def process_handle(self, ee, id):
         handle_prefix = 'hdl.handle.net/'
         handle_suffix = ee.split(handle_prefix)[1]
         #handle_dict[handle_suffix] = id
-        add_to_dict(self.handle_dict, handle_suffix, self.id)
+        add_to_dict(self.handle_dict, handle_suffix, id)
 
-    def process_dnb(self, ee):
+    def process_dnb(self, ee, id):
         dnb_suffix = ee.split('/')[-1]
         #dnb_dict[dnb_suffix] = id
-        add_to_dict(self.dnb_dict, dnb_suffix, self.id)
+        add_to_dict(self.dnb_dict, dnb_suffix, id)
 
-    def process_acm(self, ee):
+    def process_acm(self, ee, id):
         acm_suffix = ee.split('=')[-1]
         #acm_dict[acm_suffix] = id
-        add_to_dict(self.acm_dict, acm_suffix, self.id)
+        add_to_dict(self.acm_dict, acm_suffix, id)
 
-    def process_ethos(self, ee):
+    def process_ethos(self, ee, id):
         ethos_suffix = ee.split('=')[-1]
         #ethos_dict[ethos_suffix] = id
-        add_to_dict(self.ethos_dict, ethos_suffix, self.id)
+        add_to_dict(self.ethos_dict, ethos_suffix, id)
 
 
-    def process_wikidata_dblp_author_id(self):
-        key = self.entity['key']
+    def process_wikidata_dblp_author_id(self, entity, id):
+        key = entity['key']
         if key[:10] == "homepages/":
             id_sin_homepages = key[10:]
-            add_to_dict(self.dblp_dict, id_sin_homepages, self.id)
+            add_to_dict(self.dblp_dict, id_sin_homepages, id)
 
 
-    def process_any(self, content, dict):
-        add_to_dict(dict, content, self.id)
+    def process_any(self, content, dict, id):
+        add_to_dict(dict, content, id)
 
-    def link_by_id(self, wikidata_linker):
+    #link_by_id: Relaciona a las entidades equivalentes entre BibKG y Wikidata mediante comparación de IDs, y guarda la información en
+    # WikidataLinker 
+    def link_by_id(self):
 
         doi_prefix = 'doi.org/'
         arxiv_prefix = 'arxiv.org/abs/'
@@ -195,41 +200,41 @@ class LinkByID():
         #leer BibKG y capturar los ee
 
         inicio = time.time()
-        with open(wikidata_linker.bibkg_path, 'r') as bibkg:
+        with open(self.wikidata_linker.bibkg_path, 'r') as bibkg:
             for linea in bibkg:
-                self.entity = json.loads(linea)
-                self.id = self.entity['id']
-                if 'ee' in self.entity:
-                    ee = re.sub(r'^https?://', '', self.entity['ee'])
+                entity = json.loads(linea)
+                id = entity['id']
+                if 'ee' in entity:
+                    ee = re.sub(r'^https?://', '', entity['ee'])
                     for key in url_functions_dict:
                         if key in ee:
                             key_dict = url_functions_dict[key]
                             key_function = key_dict['function']
-                            key_function(ee)
+                            key_function(ee, id)
                             break
-                if 'wikidata' in self.entity:
-                    self.wikidata_in_file[self.id] = True
-                if ':url' in self.entity:
-                    self.process_dblp_url()
-                if 'isbn' in self.entity:
-                    self.process_any(self.entity['isbn'], self.isbn_dict)
-                if 'type' in self.entity and self.entity['type'] == 'Person':
-                    if 'scholar' in self.entity:
-                        self.process_any(self.entity['scholar'], self.scholar_dict)
-                    if 'orcid' in self.entity:
-                        self.process_any(self.entity['orcid'], self.orcid_dict)
-                    if 'key' in self.entity:
-                        self.process_wikidata_dblp_author_id()
+                if 'wikidata' in entity:
+                    self.wikidata_in_file[entity['wikidata']] = id
+                if ':url' in entity:
+                    self.process_dblp_url(entity)
+                if 'isbn' in entity:
+                    self.process_any(entity['isbn'], self.isbn_dict, id)
+                if 'type' in entity and entity['type'] == 'Person':
+                    if 'scholar' in entity:
+                        self.process_any(entity['scholar'], self.scholar_dict, id)
+                    if 'orcid' in entity:
+                        self.process_any(entity['orcid'], self.orcid_dict, id)
+                    if 'key' in entity:
+                        self.process_wikidata_dblp_author_id(entity, id)
 
 
         print("IDs de BibKG cargados")
         print("Comparando con IDs de Wikidata")
 
-        with open(wikidata_linker.wikidata_scholar_path, 'r') as wikidata_scholar:
+        with open(self.wikidata_linker.wikidata_scholar_path, 'r') as wikidata_scholar:
             for linea in wikidata_scholar:
-                self.entity = json.loads(linea)
-                self.id = self.entity['id']
-                claims = self.entity['claims'].items()
+                entity = json.loads(linea)
+                id = entity['id']
+                claims = entity['claims'].items()
                 for key, value in claims:
                     if key in self.wikidata_properties_dict:
                         for valor in value:
@@ -243,32 +248,32 @@ class LinkByID():
                                 property_id = property_dict[valor_at]
                                 if 'filter-dict' in property:
                                     self.wikidata_properties_dict[key]['filter-dict'][valor_at] = property_id
-                                if property_id not in wikidata_linker.writed_links_dict and self.id not in self.wikidata_in_file:
-                                    wikidata_linker.writed_links_dict[property_id] = self.id
+                                if property_id not in self.wikidata_linker.writed_links_dict and id not in self.wikidata_in_file:
+                                    self.wikidata_linker.writed_links_dict[property_id] = id
                                     count_links += 1 
                                     property['count-links'] += 1
-                                    wikidata_linker.csv_data.append([property_id, self.id, 'linked_by_id'])
+                                    self.wikidata_linker.csv_data.append([property_id, id, 'linked_by_id'])
                                 property['count-total'] += 1
                                 count_relations += 1
                                 break
                             elif property['name'] == 'DOI' and valor_at.upper() in property_dict:
                                 property_id = property_dict[valor_at.upper()]
-                                if property_id not in wikidata_linker.writed_links_dict and self.id not in self.wikidata_in_file:
-                                    wikidata_linker.writed_links_dict[property_id] = self.id
+                                if property_id not in self.wikidata_linker.writed_links_dict and id not in self.wikidata_in_file:
+                                    self.wikidata_linker.writed_links_dict[property_id] = id
                                     count_links += 1 
                                     property['count-links'] += 1
-                                    wikidata_linker.csv_data.append([property_id, self.id, 'linked_by_id'])
+                                    self.wikidata_linker.csv_data.append([property_id, id, 'linked_by_id'])
                                 property['count-total'] += 1
                                 count_relations += 1
                                 break
 
 
         #Enlazar personas con el mismo ID
-        with open(wikidata_linker.wikidata_person_path, 'r') as wikidata_person:
+        with open(self.wikidata_linker.wikidata_person_path, 'r') as wikidata_person:
             for linea in wikidata_person:
-                self.entity = json.loads(linea)
-                self.id = self.entity['id']
-                claims = self.entity['claims'].items()
+                entity = json.loads(linea)
+                id = entity['id']
+                claims = entity['claims'].items()
                 for key, value in claims:
                     if key in wikidata_properties_person_dict:
                         for valor in value:
@@ -280,11 +285,11 @@ class LinkByID():
                             property_dict = property['dict']
                             if valor_at in property_dict:
                                 property_id = property_dict[valor_at]
-                                if property_id not in wikidata_linker.writed_links_dict and self.id not in self.wikidata_in_file:
-                                    wikidata_linker.writed_links_dict[property_id] = self.id
+                                if property_id not in self.wikidata_linker.writed_links_dict and id not in self.wikidata_in_file:
+                                    self.wikidata_linker.writed_links_dict[property_id] = id
                                     count_links += 1 
                                     property['count-links'] += 1
-                                    wikidata_linker.csv_data.append([property_id, self.id, 'linked_by_id'])
+                                    self.wikidata_linker.csv_data.append([property_id, id, 'linked_by_id'])
                                 property['count-total'] += 1
                                 count_relations += 1
                                 break
@@ -323,8 +328,8 @@ class LinkByID():
 
         # print("Lectura de Wikidata terminada")
 
-        # print("Enlaces totales conseguidos: {}".format(count_links))
-        # print("Relaciones entre entidades totales: {}".format(count_relations))
+        print("Enlaces totales conseguidos: {}".format(count_links))
+        print("Relaciones entre entidades totales: {}".format(count_relations))
         # print("Enlaces de cada tipo:")
         # for key, value in wikidata_properties_dict.items():
         #     print("Enlaces conseguidos con {}: {}".format(value['name'], value['count-links']))
@@ -334,7 +339,7 @@ class LinkByID():
         # #     print("Enlaces conseguidos con {}: {}".format(value['name'], value['count-links']))
         # #     print("Total de conexiones de BibKG con {}: {}".format(value['name'], value['count-total']))
 
-        # print("Enlaces totales escritos en BibKG: {}".format(count_links_writed))
+        print("Enlaces totales escritos en BibKG: {}".format(count_links_writed))
 
 
         #wikidata_properties_dict.update(wikidata_properties_person_dict)

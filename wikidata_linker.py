@@ -1,7 +1,7 @@
 import os
 import csv
 import time
-from Link_by_id import link_by_id_2
+from Link_by_id.link_by_id_2 import LinkByID
 from Link_by_parameters import link_by_parameters
 # from Link_by_comparisons import link_by_comparisons
 
@@ -52,8 +52,8 @@ class WikidataLinker:
 
     
     def link_by_id(self):
-        id_linker = link_by_id_2.LinkByID()
-        id_linker.link_by_id(self)
+        id_linker = LinkByID(self)
+        id_linker.link_by_id()
 
     def link_by_parameters(self):
         id_linker = link_by_parameters.LinkByParameters()
@@ -69,6 +69,7 @@ if __name__ == "__main__":
     json_folder = "db/JSON/"
     bibkg_path = json_folder + "bibkg.json"
 
+    #Rutas de los archivos del proceso
     carpeta_externa = "D:\Memoria" 
     wikidata_person_name = "wikidata_person_4.json"
     wikidata_scholar_name = "wikidata_scholar_4.json"
@@ -83,8 +84,11 @@ if __name__ == "__main__":
     wikidata_linker.link_by_id()
     print(len(wikidata_linker.writed_links_dict))
 
-    # while wikidata_linker.method_writed_links != 0:
-    #     wikidata_linker.link_by_parameters()
+    count_links = 1
+
+    while count_links != 0:
+        count_links = wikidata_linker.link_by_parameters()
+        print(count_links)
 
     # wikidata_linker.link_by_comparisons()
 

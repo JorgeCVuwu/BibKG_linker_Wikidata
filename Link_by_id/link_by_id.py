@@ -121,7 +121,7 @@ def process_wikidata_dblp_author_id(id, entity, dblp_dict):
 def process_any(id, content, dict):
     add_to_dict(dict, content, id)
 
-def link_by_id(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data, writed_links_dict = {}, bibkg_link_sources_path = bibkg_link_sources_path):
+def link_by_id(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data = '', writed_links_dict = {}, bibkg_link_sources_path = bibkg_link_sources_path):
 
     doi_prefix = 'doi.org/'
     arxiv_prefix = 'arxiv.org/abs/'
@@ -329,7 +329,7 @@ def link_by_id(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data
                 if entity_type not in count_type_dict:
                     count_type_dict[entity_type] = 0
                 count_type_dict[entity_type] += 1
-                csv_data.append([id, wikidata_id, 'linked_by_id'])
+                #csv_data.append([id, wikidata_id, 'linked_by_id'])
 
             row = [id,entity_type]
             for key, diccionarios in inverted_dicts_dict.items():
@@ -348,8 +348,8 @@ def link_by_id(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data
 
     # print("Lectura de Wikidata terminada")
 
-    # print("Enlaces totales conseguidos: {}".format(count_links))
-    # print("Relaciones entre entidades totales: {}".format(count_relations))
+    print("Enlaces totales conseguidos: {}".format(count_links))
+    print("Relaciones entre entidades totales: {}".format(count_relations))
     # print("Enlaces de cada tipo:")
     # for key, value in wikidata_properties_dict.items():
     #     print("Enlaces conseguidos con {}: {}".format(value['name'], value['count-links']))
@@ -364,29 +364,31 @@ def link_by_id(bibkg_path, wikidata_person_path, wikidata_scholar_path, csv_data
 
     #wikidata_properties_dict.update(wikidata_properties_person_dict)
 
-    folder = 'Link_by_id/data/'
-    metadata_path = folder + 'count-id-links-upper-doi.csv'
-    type_count_path = folder + 'count-links-type.csv'
+    # folder = 'Link_by_id/data/'
+    # metadata_path = folder + 'count-id-links-upper-doi.csv'
+    # type_count_path = folder + 'count-links-type.csv'
 
-    #print("\nEscribiendo CSV de counts")
+    # #print("\nEscribiendo CSV de counts")
 
-    with open(metadata_path, mode='w', newline='') as archivo_csv:
-        writer = csv.writer(archivo_csv)
-        writer.writerow(["ID", "Enlaces conseguidos", "Total de referencias en Wikidata"])
-        sorted_items = sorted(wikidata_properties_dict.items(), key=lambda x: x[1]['count-total'], reverse=True)
-        for llave, valor in sorted_items:
-            writer.writerow([valor['name'], valor['count-links'], valor['count-total']])
+    # with open(metadata_path, mode='w', newline='') as archivo_csv:
+    #     writer = csv.writer(archivo_csv)
+    #     writer.writerow(["ID", "Enlaces conseguidos", "Total de referencias en Wikidata"])
+    #     sorted_items = sorted(wikidata_properties_dict.items(), key=lambda x: x[1]['count-total'], reverse=True)
+    #     for llave, valor in sorted_items:
+    #         writer.writerow([valor['name'], valor['count-links'], valor['count-total']])
 
-    #print("\nEscribiendo CSV de counts de tipos")
+    # #print("\nEscribiendo CSV de counts de tipos")
 
-    with open(type_count_path, mode='w', newline='') as archivo_csv:
-        writer = csv.writer(archivo_csv)
-        writer.writerow(["Tipo", "Count"])
-        sorted_items = sorted(count_type_dict.items(), key=lambda x: x[1], reverse=True)
-        for llave, valor in sorted_items:
-            writer.writerow([llave, valor])
+    # with open(type_count_path, mode='w', newline='') as archivo_csv:
+    #     writer = csv.writer(archivo_csv)
+    #     writer.writerow(["Tipo", "Count"])
+    #     sorted_items = sorted(count_type_dict.items(), key=lambda x: x[1], reverse=True)
+    #     for llave, valor in sorted_items:
+    #         writer.writerow([llave, valor])
 
     #print("Proceso completado")
 
     return writed_links_dict, count_links_writed, csv_data
+
+link_by_id(bibkg_path, wikidata_person_path, wikidata_scholar_path)
 

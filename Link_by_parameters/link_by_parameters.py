@@ -15,15 +15,286 @@ wikidata_scholar_name = "wikidata_scholar.json"
 
 publications_dict = {}
 
-print("Creando diccionario de publicaciones")
 
-with open(bibkg_names_path, 'r') as bibkg:
-    print("Almacenando autores de BibKG")
-    for linea in bibkg:
-        entity = json.loads(linea)
-        id = entity['id']
-        if 'has_author' in entity:
-            publications_dict[id] = entity['has_author']
+def is_number(string):
+    patron = r'^\d+$'
+    if re.match(patron, string):
+        return True
+    else:
+        return False
 
-with open():
-    print("Comparando con entidades de Wikidata")
+def process_names(name):
+    split = name.split()
+    resultado = name
+    if len(split) == 3:
+        if (len(split[1]) == 2 and "." in split[1]) or len(split[1]) == 1:
+            resultado = split[0] + ' ' + split[2]
+        elif is_number(split[2]):
+            resultado = split[0] + ' ' + split[1]
+        # else:
+        #     print(name)
+    return resultado.replace(".", "").lower()
+
+def process_author_id(id):
+    if id[0:2] == "a_":
+        return id[2:].replace("_", " ")
+
+class LinkByParameters():
+
+    def __init__(self, wikidata_linker):
+
+        self.wikidata_linker = wikidata_linker
+
+        self.bibkg_publications_dict = {}
+        self.wikidata_person_dict = {}
+        self.string_authors_dict = {}
+        self.bibkg_author_dict = {}
+        self.author_wikidata_id_dict = {}
+        self.parameters_links = {}
+
+        #Propiedades de Wikidata
+        self.wikidata_author_property = 'P50'
+        self.wikidata_author_string_property = 'P2093'
+        self.wikidata_published_in_property = 'P1433'
+
+        self.count_links = 0
+        self.count_publication_links = 0
+        self.count_author_links = 0
+        self.count_journal_links = 0
+
+    #link_authors: si se cumplen las condiciones, enlaza entidades de autores de BibKG y Wikidata
+    def link_authors(self, bibkg_id, wikidata_id):
+        writed_links_dict = self.wikidata_linker.writed_links_dict
+        forbidden_links_dict = self.wikidata_linker.forbidden_links_dict
+        if bibkg_id not in writed_links_dict and bibkg_id not in forbidden_links_dict:
+            writed_links_dict[bibkg_id] = wikidata_id
+            self.count_links += 1
+            self.count_author_links += 1
+        #Si una entidad es relacionada con otra entidad a la ya asociada, se elimina la asociación
+        elif writed_links_dict[bibkg_id] != wikidata_id:
+            forbidden_links_dict[bibkg_id] = True
+            del writed_links_dict[bibkg_id]
+
+    #link_authors: si se cumplen las condiciones, enlaza entidades de publicaciones (y entidades con autores en general) de BibKG y Wikidata
+    def link_publications(self, bibkg_id, wikidata_id):
+        writed_links_dict = self.wikidata_linker.writed_links_dict
+        forbidden_links_dict = self.wikidata_linker.forbidden_links_dict
+        if bibkg_id not in writed_links_dict and bibkg_id not in forbidden_links_dict:
+
+            writed_links_dict[bibkg_id] = wikidata_id
+            self.count_links += 1
+            self.count_publication_links += 1        
+        elif writed_links_dict[bibkg_id] != wikidata_id:
+            forbidden_links_dict[bibkg_id] = True
+            del writed_links_dict[bibkg_id]    
+
+    #link_authors: si se cumplen las condiciones, enlaza entidades de revistas de BibKG y Wikidata
+    def link_journals(self, bibkg_id, wikidata_id):
+        writed_links_dict = self.wikidata_linker.writed_links_dict
+        forbidden_links_dict = self.wikidata_linker.forbidden_links_dict
+        if bibkg_id not in writed_links_dict:
+            writed_links_dict[bibkg_id] = wikidata_id    
+            self.count_links += 1
+            self.count_journal_links += 1
+        elif writed_links_dict[bibkg_id] != wikidata_id:
+            forbidden_links_dict[bibkg_id] = True
+            del writed_links_dict[bibkg_id]
+
+
+    def link_by_parameters(self):
+
+        print("Guardando datos de BibKG")
+        #primer paso: guardar datos necesarios de BibKG en memoria
+        with open(bibkg_path, 'r') as bibkg:
+            for linea in bibkg:
+                entity = json.loads(linea)
+                id = entity['id']
+                if 'type' in entity:
+                    type = entity['type']
+                else:
+                    type = 'unknown'
+                
+                #En caso de que la entidad posea un enlace con Wikidata
+                wikidata_in_entity = 'wikidata' in entity
+                if wikidata_in_entity or (id in self.wikidata_linker.writed_links_dict):
+                    if wikidata_in_entity:
+                        wikidata_id = self.wikidata_linker.writed_links_dict[id]
+                    else:
+                        wikidata_id = entity['wikidata']
+
+                    #link_publications
+                    if type == 'Person':
+                        name = process_names(entity['name'])
+                        self.bibkg_author_dict[id] = {'id':id, 'name':name, 'publications':{}}
+                        self.author_wikidata_id_dict[wikidata_id] = self.bibkg_author_dict[id]
+                    
+                    #link_authors
+                    elif 'has_author' in entity:
+                        if 'name' in entity:
+                            name = entity['name']
+                        else:
+                            name = process_author_id(id)
+                        name = process_names(name)
+
+                        authors_dict = {}
+                        for author in entity['has_author']:
+                            author_id = author['value']
+                            authors_dict[author_id] = {'id':author_id}
+                            if 'orden' in author:
+                                authors_dict[author_id]['orden'] = author['orden']
+
+                        self.bibkg_publications_dict[wikidata_id] = {'id':id, 'name':name, 'has_author':authors_dict}
+                        
+                    #link journals
+                    if 'in_journal' in entity:
+                        entity_journal = entity['in_journal']
+                        if wikidata_id in self.bibkg_publications_dict:
+                            self.bibkg_publications_dict[wikidata_id]['in_journal'] = entity_journal
+                        else:
+                            self.bibkg_publications_dict[wikidata_id] = {'id':id, 'in_journal':entity_journal}
+
+
+        print("Agregando IDs a propiedades que asocian entidades")
+        for entity in self.bibkg_publications_dict:
+            id = entity['id']
+            if 'has_author' in entity:
+                for author in entity['has_author']:
+                    author_id = author['id']
+
+                    if author_id in self.bibkg_author_dict[id]:
+                        author['name'] = self.bibkg_author_dict[id][author_id]['name']
+                    
+                        self.bibkg_author_dict[id]['publications'][id] = entity
+
+
+        print("Leyendo personas de Wikidata")
+
+        with open(self.wikidata_linker.wikidata_person_path, 'r') as wikidata_person:
+            for linea in wikidata_person:
+                entity = json.loads(linea)
+                id = entity['id']
+                if 'en' in entity['name']:
+                    self.wikidata_person_dict[id] = entity['name']['en']['value']
+                else:
+                    for _, valor in entity['name'].items():
+                        self.wikidata_person_dict[id] = valor['value']
+                        break
+                
+        print("Leyendo publicaciones de Wikidata")
+
+        with open(self.wikidata_linker.wikidata_scholar_path, 'r') as wikidata_scholar:
+            for linea in wikidata_scholar:
+                entity = json.loads(linea)
+                wikidata_id = entity['id']
+                claims = entity['claims']
+
+                #Analizar caso de autores en publicaciones (link_authors)
+                if wikidata_id in self.bibkg_publications_dict:
+                    bibkg_entity = self.bibkg_publications_dict[wikidata_id]
+                    claims = entity['claims']
+
+                    #Incorporar author strings de Wikidata
+                    if self.wikidata_author_string_property in claims:
+                        authors = claims[self.wikidata_author_string_property]
+                        for author in authors:
+                            if 'datavalue' in author['mainsnak']:
+                                #try:
+                                wikidata_author_id = author['mainsnak']['datavalue']['value']
+                                self.string_authors_dict[wikidata_author_id] = wikidata_author_id
+
+                    #Caso de entidades de autores de publicaciones
+                    if self.wikidata_author_property in claims:
+                        authors = claims[self.wikidata_author_property]
+                        author_names_list_bibkg = {}
+                        order_list_bibkg = {}
+                        for value in bibkg_entity['has_author']:
+                            #Procesar nombre de BibKG
+                            bibkg_person_id = value['value']
+                            bibkg_person_name = value['name']
+                            # print(bibkg_person_name)
+                            # print(bibkg_person_id)
+                            processed_name = process_names(bibkg_person_name)
+                            author_names_list_bibkg[processed_name] = bibkg_person_id
+                            if 'orden' in value:
+                                order_list_bibkg[value['orden']] = processed_name
+
+                        for author in authors:
+                            if 'datavalue' in author['mainsnak']:
+                                wikidata_author_id = author['mainsnak']['datavalue']['value']
+                                if 'order' in author:
+                                    wikidata_author_order = author['order']
+                                    wikidata_author_name = process_names(self.wikidata_person_dict[wikidata_author_id])
+                                    name_order = order_list_bibkg.get(wikidata_author_order)
+                                    if name_order:
+                                        bibkg_id = author_names_list_bibkg[name_order]
+                                    else:
+                                        bibkg_id = author_names_list_bibkg[wikidata_author_name]
+                                    self.link_authors(bibkg_id, id)
+                                else:
+                                    if wikidata_author_name in author_names_list_bibkg:
+                                        bibkg_id = author_names_list_bibkg[wikidata_author_name]
+                                        self.link_authors(bibkg_id, id)
+                
+                #Almacenar publicaciones de autores para link_publications
+                if self.wikidata_author_property in claims:
+                    authors = claims[self.wikidata_author_property]
+                    for author in authors:
+                        if 'datavalue' in author['mainsnak']:
+                            wikidata_author_id = author['mainsnak']['datavalue']['value']
+                            if wikidata_author_id in self.wikidata_person_dict:
+                                author_entity = {}
+                                if 'name' in entity:
+                                    if len(entity['name']) > 0:
+                                        #Tomar el primer nombre disponible de la entidad (para casos con múltiples idiomas en el nombre)
+                                        author_entity['name'] = process_names(entity['name'][next(iter(entity['name']))]['value'])
+                                    #tomar distintos aliases
+                                    if 'aliases' in entity:
+                                        author_entity['aliases'] = []
+                                        for key, alias in entity['aliases'].items():
+                                            for subalias in alias:
+                                                alias_value = subalias['value']
+                                                author_entity['aliases'].append(process_names(alias_value))                                
+                                self.wikidata_person_dict[wikidata_author_id]['publications'][id] = author_entity
+
+                #Para caso link_journals
+                if self.wikidata_published_in_property in claims:
+                    bibkg_journal_id = bibkg_entity['in_journal'][0]['value']
+                    #print(bibkg_journal_id)
+                    publishers = claims[self.wikidata_published_in_property]
+                    n_publishers = len(publishers)
+                    if n_publishers == 1:
+                        for publisher in publishers:
+                            if 'datavalue' in publisher['mainsnak']:
+                                wikidata_journal_id = publisher['mainsnak']['datavalue']['value']
+                                self.link_journals(bibkg_journal_id, wikidata_journal_id)
+
+        
+        print("Comparando publicaciones de autores")
+        #Comparar publicaciones de autores de Wikidata con BibKG guardados en memoria
+        for key, wikidata_entity in self.wikidata_person_dict.items():
+            wikidata_publications = wikidata_entity['publications']
+            bibkg_entity = self.author_wikidata_id_dict[key]
+            bibkg_publications = bibkg_entity['publications']
+            name_values = [publication['name'] for publication in bibkg_publications.values()]
+            repeated_names = set()
+            for name in name_values:
+                if name_values.count(name) > 1:
+                    repeated_names.add(name)
+            for bibkg_key, bibkg_publication in bibkg_publications.items():
+                bibkg_name = bibkg_publication['name']
+
+                # definir parametros de comparacion
+                for wikidata_key, value in wikidata_publications.items():
+                    if 'name' in value and bibkg_name not in repeated_names:
+                        wikidata_name = value['name']
+                        if bibkg_name == wikidata_name:
+                            self.link_publications(bibkg_key, wikidata_key)
+                        elif 'aliases' in bibkg_publication:
+                            bibkg_aliases = bibkg_publication['aliases']
+                            if wikidata_name in bibkg_aliases:
+                                self.link_publications(bibkg_key, wikidata_key)
+                        
+        return self.count_links
+
+
+
