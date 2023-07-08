@@ -56,8 +56,8 @@ class WikidataLinker:
         id_linker.link_by_id()
 
     def link_by_parameters(self):
-        id_linker = link_by_parameters.LinkByParameters()
-        id_linker.link_by_parameters(self)
+        id_linker = link_by_parameters.LinkByParameters(self)
+        id_linker.link_by_parameters()
 
     def link_by_comparisons(self):
         pass
@@ -65,6 +65,8 @@ class WikidataLinker:
 
     
 if __name__ == "__main__":
+
+    inicio = time.time()
 
     json_folder = "db/JSON/"
     bibkg_path = json_folder + "bibkg.json"
@@ -89,6 +91,10 @@ if __name__ == "__main__":
     while count_links != 0:
         count_links = wikidata_linker.link_by_parameters()
         print(count_links)
+    
+    fin = time.time()
+
+    print("Tiempo de ejecución: {}".format(fin - inicio))
 
     # wikidata_linker.link_by_comparisons()
 

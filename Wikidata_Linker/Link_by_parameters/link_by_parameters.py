@@ -24,6 +24,7 @@ def is_number(string):
         return False
 
 def process_names(name):
+    name = str(name)
     split = name.split()
     resultado = name
     if len(split) == 3:
@@ -100,7 +101,9 @@ class LinkByParameters():
             forbidden_links_dict[bibkg_id] = True
             del writed_links_dict[bibkg_id]
 
-
+    #link_by_parameters: enlaza BibKG con Wikidata enlazando entidades que forman parte de los valores de las propiedades de entidades
+    #ya enlazadas entre BibKG con Wikidata
+    #Se enlazan autores (link_authors()), publicaciones (link_publications()) y revistas (link_journals())
     def link_by_parameters(self):
 
         print("Guardando datos de BibKG")
@@ -118,9 +121,9 @@ class LinkByParameters():
                 wikidata_in_entity = 'wikidata' in entity
                 if wikidata_in_entity or (id in self.wikidata_linker.writed_links_dict):
                     if wikidata_in_entity:
-                        wikidata_id = self.wikidata_linker.writed_links_dict[id]
+                        wikidata_id = entity['wikidata']    
                     else:
-                        wikidata_id = entity['wikidata']
+                        wikidata_id = self.wikidata_linker.writed_links_dict[id]
 
                     #link_publications
                     if type == 'Person':
@@ -155,16 +158,16 @@ class LinkByParameters():
 
 
         print("Agregando IDs a propiedades que asocian entidades")
-        for entity in self.bibkg_publications_dict:
+        for key, entity in self.bibkg_publications_dict.items():
             id = entity['id']
             if 'has_author' in entity:
-                for author in entity['has_author']:
-                    author_id = author['id']
+                for author_id, author in entity['has_author'].items():
+                    #author_id = author['id']
 
-                    if author_id in self.bibkg_author_dict[id]:
-                        author['name'] = self.bibkg_author_dict[id][author_id]['name']
+                    if author_id in self.bibkg_author_dict:
+                        author['name'] = self.bibkg_author_dict[author_id]['name']
                     
-                        self.bibkg_author_dict[id]['publications'][id] = entity
+                        self.bibkg_author_dict[author_id]['publications'][id] = entity
 
 
         print("Leyendo personas de Wikidata")
@@ -207,23 +210,26 @@ class LinkByParameters():
                         authors = claims[self.wikidata_author_property]
                         author_names_list_bibkg = {}
                         order_list_bibkg = {}
-                        for value in bibkg_entity['has_author']:
-                            #Procesar nombre de BibKG
-                            bibkg_person_id = value['value']
-                            bibkg_person_name = value['name']
-                            # print(bibkg_person_name)
-                            # print(bibkg_person_id)
-                            processed_name = process_names(bibkg_person_name)
-                            author_names_list_bibkg[processed_name] = bibkg_person_id
-                            if 'orden' in value:
-                                order_list_bibkg[value['orden']] = processed_name
+                        for key, value in bibkg_entity['has_author'].items():
+                            if 'name' in value:
+                                #Procesar nombre de BibKG
+                                bibkg_person_id = value['id']
+                                #except:
+                                #print(value)
+                                bibkg_person_name = value['name']
+                                # print(bibkg_person_name)
+                                # print(bibkg_person_id)
+                                processed_name = process_names(bibkg_person_name)
+                                author_names_list_bibkg[processed_name] = bibkg_person_id
+                                if 'orden' in value:
+                                    order_list_bibkg[value['orden']] = processed_name
 
                         for author in authors:
                             if 'datavalue' in author['mainsnak']:
                                 wikidata_author_id = author['mainsnak']['datavalue']['value']
+                                wikidata_author_name = process_names(self.wikidata_person_dict[wikidata_author_id])
                                 if 'order' in author:
                                     wikidata_author_order = author['order']
-                                    wikidata_author_name = process_names(self.wikidata_person_dict[wikidata_author_id])
                                     name_order = order_list_bibkg.get(wikidata_author_order)
                                     if name_order:
                                         bibkg_id = author_names_list_bibkg[name_order]
@@ -241,7 +247,7 @@ class LinkByParameters():
                     for author in authors:
                         if 'datavalue' in author['mainsnak']:
                             wikidata_author_id = author['mainsnak']['datavalue']['value']
-                            if wikidata_author_id in self.wikidata_person_dict:
+                            if wikidata_author_id in self.author_wikidata_id_dict:
                                 author_entity = {}
                                 if 'name' in entity:
                                     if len(entity['name']) > 0:
@@ -253,25 +259,32 @@ class LinkByParameters():
                                         for key, alias in entity['aliases'].items():
                                             for subalias in alias:
                                                 alias_value = subalias['value']
-                                                author_entity['aliases'].append(process_names(alias_value))                                
-                                self.wikidata_person_dict[wikidata_author_id]['publications'][id] = author_entity
+                                                author_entity['aliases'].append(process_names(alias_value))
+                                try:                                
+                                    self.author_wikidata_id_dict[wikidata_author_id]['publications'][id] = author_entity
+                                except:
+                                    print(self.author_wikidata_id_dict[wikidata_author_id]['publications'])
+                                    print(author_entity)
+                                    break
 
                 #Para caso link_journals
                 if self.wikidata_published_in_property in claims:
-                    bibkg_journal_id = bibkg_entity['in_journal'][0]['value']
-                    #print(bibkg_journal_id)
-                    publishers = claims[self.wikidata_published_in_property]
-                    n_publishers = len(publishers)
-                    if n_publishers == 1:
-                        for publisher in publishers:
-                            if 'datavalue' in publisher['mainsnak']:
-                                wikidata_journal_id = publisher['mainsnak']['datavalue']['value']
-                                self.link_journals(bibkg_journal_id, wikidata_journal_id)
+                    bibkg_entity = self.bibkg_publications_dict.get(wikidata_id)
+                    if bibkg_entity:
+                        bibkg_journal_id = bibkg_entity['in_journal'][0]['value']
+                        #print(bibkg_journal_id)
+                        publishers = claims[self.wikidata_published_in_property]
+                        n_publishers = len(publishers)
+                        if n_publishers == 1:
+                            for publisher in publishers:
+                                if 'datavalue' in publisher['mainsnak']:
+                                    wikidata_journal_id = publisher['mainsnak']['datavalue']['value']
+                                    self.link_journals(bibkg_journal_id, wikidata_journal_id)
 
         
         print("Comparando publicaciones de autores")
         #Comparar publicaciones de autores de Wikidata con BibKG guardados en memoria
-        for key, wikidata_entity in self.wikidata_person_dict.items():
+        for key, wikidata_entity in self.author_wikidata_id_dict.items():
             wikidata_publications = wikidata_entity['publications']
             bibkg_entity = self.author_wikidata_id_dict[key]
             bibkg_publications = bibkg_entity['publications']
