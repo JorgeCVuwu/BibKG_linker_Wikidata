@@ -5,17 +5,6 @@ import time
 import os
 import csv
 
-json_folder = "db/JSON/"
-bibkg_path = json_folder + "bibkg.json"
-bibkg_names_path = json_folder + "bibkg_person_name.json"
-
-carpeta_externa = "D:\Memoria" 
-wikidata_person_name = "wikidata_person.json"
-wikidata_scholar_name = "wikidata_scholar.json"
-
-publications_dict = {}
-
-
 def is_number(string):
     patron = r'^\d+$'
     if re.match(patron, string):
@@ -67,10 +56,11 @@ class LinkByParameters():
     def link_authors(self, bibkg_id, wikidata_id):
         writed_links_dict = self.wikidata_linker.writed_links_dict
         forbidden_links_dict = self.wikidata_linker.forbidden_links_dict
-        if bibkg_id not in writed_links_dict and bibkg_id not in forbidden_links_dict:
-            writed_links_dict[bibkg_id] = wikidata_id
-            self.count_links += 1
-            self.count_author_links += 1
+        if bibkg_id not in writed_links_dict: 
+            if bibkg_id not in forbidden_links_dict:
+                writed_links_dict[bibkg_id] = wikidata_id
+                self.count_links += 1
+                self.count_author_links += 1
         #Si una entidad es relacionada con otra entidad a la ya asociada, se elimina la asociación
         elif writed_links_dict[bibkg_id] != wikidata_id:
             forbidden_links_dict[bibkg_id] = True
@@ -80,11 +70,11 @@ class LinkByParameters():
     def link_publications(self, bibkg_id, wikidata_id):
         writed_links_dict = self.wikidata_linker.writed_links_dict
         forbidden_links_dict = self.wikidata_linker.forbidden_links_dict
-        if bibkg_id not in writed_links_dict and bibkg_id not in forbidden_links_dict:
-
-            writed_links_dict[bibkg_id] = wikidata_id
-            self.count_links += 1
-            self.count_publication_links += 1        
+        if bibkg_id not in writed_links_dict:
+            if bibkg_id not in forbidden_links_dict:
+                writed_links_dict[bibkg_id] = wikidata_id
+                self.count_links += 1
+                self.count_publication_links += 1        
         elif writed_links_dict[bibkg_id] != wikidata_id:
             forbidden_links_dict[bibkg_id] = True
             del writed_links_dict[bibkg_id]    
@@ -108,7 +98,7 @@ class LinkByParameters():
 
         print("Guardando datos de BibKG")
         #primer paso: guardar datos necesarios de BibKG en memoria
-        with open(bibkg_path, 'r') as bibkg:
+        with open(self.wikidata_linker.bibkg_path, 'r') as bibkg:
             for linea in bibkg:
                 entity = json.loads(linea)
                 id = entity['id']
@@ -232,13 +222,16 @@ class LinkByParameters():
                                     wikidata_author_order = author['order']
                                     name_order = order_list_bibkg.get(wikidata_author_order)
                                     if name_order:
-                                        bibkg_id = author_names_list_bibkg[name_order]
+                                        bibkg_id = author_names_list_bibkg.get(name_order)
+                                        #bibkg_id = author_names_list_bibkg[name_order]
                                     else:
-                                        bibkg_id = author_names_list_bibkg[wikidata_author_name]
-                                    self.link_authors(bibkg_id, id)
+                                        bibkg_id = author_names_list_bibkg.get(wikidata_author_name)
+                                        #bibkg_id = author_names_list_bibkg[wikidata_author_name]
+                                    if bibkg_id:
+                                        self.link_authors(bibkg_id, id)
                                 else:
-                                    if wikidata_author_name in author_names_list_bibkg:
-                                        bibkg_id = author_names_list_bibkg[wikidata_author_name]
+                                    bibkg_id = author_names_list_bibkg.get(wikidata_author_name)
+                                    if bibkg_id:
                                         self.link_authors(bibkg_id, id)
                 
                 #Almacenar publicaciones de autores para link_publications
@@ -270,7 +263,7 @@ class LinkByParameters():
                 #Para caso link_journals
                 if self.wikidata_published_in_property in claims:
                     bibkg_entity = self.bibkg_publications_dict.get(wikidata_id)
-                    if bibkg_entity:
+                    if bibkg_entity and 'in_journal' in entity:
                         bibkg_journal_id = bibkg_entity['in_journal'][0]['value']
                         #print(bibkg_journal_id)
                         publishers = claims[self.wikidata_published_in_property]
