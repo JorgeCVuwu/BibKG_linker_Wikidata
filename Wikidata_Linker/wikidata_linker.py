@@ -26,6 +26,7 @@ class WikidataLinker:
         #Diccionarios que almacenan información referente a los enlaces
         self.writed_links_dict = {}
         self.forbidden_links_dict = {}
+        self.writed_id_entities = {}
 
         self.csv_data = [
             ['entity_id', 'wikidata_id', 'link_method']

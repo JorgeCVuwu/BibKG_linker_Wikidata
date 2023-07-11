@@ -68,9 +68,13 @@ class LinkByParameters():
                 self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_{}_recursion_authors'.format(self.link_type)])
         #Si una entidad es relacionada con otra entidad a la ya asociada, se elimina la asociación
         elif writed_links_dict[bibkg_id] != wikidata_id:
-            forbidden_links_dict[bibkg_id] = True
-            del writed_links_dict[bibkg_id]
-            self.count_fordidden_author += 1
+            #Si el elemento no está escrito por el enlazamiento por IDs, pasa a la lista prohibida y elimina el enlace actual
+            if bibkg_id not in self.wikidata_linker.writed_id_entities:
+                forbidden_links_dict[bibkg_id] = True
+                del writed_links_dict[bibkg_id]
+                self.count_fordidden_author += 1
+            
+            #De lo contrario, no se hace nada en este punto
 
     #link_authors: si se cumplen las condiciones, enlaza entidades de publicaciones (y entidades con autores en general) de BibKG y Wikidata
     def link_publications(self, bibkg_id, wikidata_id):
@@ -86,9 +90,10 @@ class LinkByParameters():
             # print("a: {}".format(bibkg_id))
             # print("b: {}".format(wikidata_id))
             # print("c: {}".format(writed_links_dict[bibkg_id]))
-            forbidden_links_dict[bibkg_id] = True
-            del writed_links_dict[bibkg_id]
-            self.count_fordidden_publication += 1    
+            if bibkg_id not in self.wikidata_linker.writed_id_entities:
+                forbidden_links_dict[bibkg_id] = True
+                del writed_links_dict[bibkg_id]
+                self.count_fordidden_publication += 1    
 
     #link_authors: si se cumplen las condiciones, enlaza entidades de revistas de BibKG y Wikidata
     def link_journals(self, bibkg_id, wikidata_id):
@@ -100,9 +105,10 @@ class LinkByParameters():
             self.count_journal_links += 1
             self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_{}_recursion_journals'.format(self.link_type)])
         elif writed_links_dict[bibkg_id] != wikidata_id:
-            forbidden_links_dict[bibkg_id] = True
-            del writed_links_dict[bibkg_id]
-            self.count_fordidden_journal += 1
+            if bibkg_id not in self.wikidata_linker.writed_id_entities:
+                forbidden_links_dict[bibkg_id] = True
+                del writed_links_dict[bibkg_id]
+                self.count_fordidden_journal += 1
 
     #link_by_parameters: enlaza BibKG con Wikidata enlazando entidades que forman parte de los valores de las propiedades de entidades
     #ya enlazadas entre BibKG con Wikidata
