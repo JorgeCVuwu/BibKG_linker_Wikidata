@@ -151,9 +151,12 @@ class LinkByComparisons():
             for author_object in authors_dict:
                 if 'datavalue' in author_object['mainsnak']:
                     author_id = author_object['mainsnak']['datavalue']['value']
-                    author_value = process_names(self.wikidata_person[author_id])
-                    author_order = author_object['order']
-                    authors_entities_dict[author_order] = author_value
+                    author_name = self.wikidata_person.get(author_id)
+                    if author_name:    
+                        author_value = process_names(author_name)
+                        if 'order' in author_object: 
+                            author_order = author_object['order']
+                            authors_entities_dict[author_order] = author_value
 
         if author_string_property in claims:
             authors_dict = claims[author_string_property]
@@ -221,9 +224,12 @@ class LinkByComparisons():
     def link_entities(self, bibkg_id, wikidata_id):
         writed_links_dict = self.wikidata_linker.writed_links_dict
         forbidden_links_dict = self.wikidata_linker.forbidden_links_dict
-        if bibkg_id not in writed_links_dict and bibkg_id not in forbidden_links_dict:
-            writed_links_dict[bibkg_id] = wikidata_id
-            self.count_links += 1
+        if bibkg_id not in writed_links_dict:
+            if bibkg_id not in forbidden_links_dict:
+                writed_links_dict[bibkg_id] = wikidata_id
+                #self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_comparisons'])
+                self.count_links += 1
+                self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_comparisons'])
         #Si una entidad es relacionada con otra entidad a la ya asociada, se elimina la asociación
         elif writed_links_dict[bibkg_id] != wikidata_id:
             forbidden_links_dict[bibkg_id] = True
@@ -269,7 +275,10 @@ class LinkByComparisons():
                 entity = json.loads(linea)
                 id = entity['id']
                 if 'name' in entity:
-                    wikidata_person_dict[id] = next(iter(entity['name'].items()))[1]['value']
+                    try:
+                        wikidata_person_dict[id] = next(iter(entity['name'].items()))[1]['value']
+                    except:
+                        pass
 
 
 

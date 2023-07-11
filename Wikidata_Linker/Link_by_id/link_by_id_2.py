@@ -154,16 +154,32 @@ class LinkByID():
         key = entity['key']
         if key[:10] == "homepages/":
             id_sin_homepages = key[10:]
-            add_to_dict(self.dblp_dict, id_sin_homepages, id)
+            add_to_dict(self.dblp_person_dict, id_sin_homepages, id)
 
 
     def process_any(self, content, dict, id):
         add_to_dict(dict, content, id)
 
+    #write_data_csv: escribe los enlaces con el tipo de enlazamiento (para los enlaces por IDs, junto con las fuentes relacionadas)
+    def write_data_csv(self):
+        folder = 'data/'
+        metadata_path = folder + 'count-id-links-test.csv'
+
+        print("\nEscribiendo CSV de counts")
+
+        with open(metadata_path, mode='w', newline='') as archivo_csv:
+            writer = csv.writer(archivo_csv)
+            writer.writerow(["ID", "Enlaces conseguidos", "Total de referencias en Wikidata"])
+            sorted_items = sorted(self.wikidata_properties_dict.items(), key=lambda x: x[1]['count-total'], reverse=True)
+            for _, valor in sorted_items:
+                writer.writerow([valor['name'], valor['count-links'], valor['count-total']])
+
+        #print("Proceso completado")
+
     #link_by_id: Relaciona a las entidades equivalentes entre BibKG y Wikidata mediante comparación de IDs, y guarda la información en
     # WikidataLinker 
     def link_by_id(self):
-
+        
         doi_prefix = 'doi.org/'
         arxiv_prefix = 'arxiv.org/abs/'
         ieeexplore_prefix = 'ieeexplore.ieee.org/'
@@ -266,6 +282,8 @@ class LinkByID():
                                 property['count-total'] += 1
                                 count_relations += 1
                                 break
+                # if count_links > 1000:
+                #     break
 
 
         #Enlazar personas con el mismo ID
@@ -278,7 +296,7 @@ class LinkByID():
                     if key in wikidata_properties_person_dict:
                         for valor in value:
                             try:
-                                valor_at= valor['mainsnak']['datavalue']['value']
+                                valor_at = valor['mainsnak']['datavalue']['value']
                             except:
                                 continue
                             property = wikidata_properties_person_dict[key]
@@ -298,7 +316,9 @@ class LinkByID():
                             # if key == property_orcid:
                             #     wikidata_orcid_dict[content] = id
                             # if key == property_scholar:
-                            #     wikidata_scholar_dict[content] = id               
+                            #     wikidata_scholar_dict[content] = id      
+                # if count_links > 1000:
+                #     break         
                                             
         print("Escribiendo enlaces en BibKG")
 
@@ -306,23 +326,26 @@ class LinkByID():
 
         self.wikidata_properties_dict.update(wikidata_properties_person_dict)
 
-        #Invertir diccionarios para eficiencia de busqueda
+        # #Invertir diccionarios para eficiencia de busqueda
 
-        inverted_dicts_dict = {}
+        # inverted_dicts_dict = {}
 
-        for key, objects in self.wikidata_properties_dict.items():
-            if 'filter-dict' in objects:
-                diccionario_invertido = {valor: clave for clave, valor in self.wikidata_properties_dict[key]['filter-dict'].items()}
-            else:
-                diccionario_invertido = {valor: clave for clave, valor in self.wikidata_properties_dict[key]['dict'].items()}
-            inverted_dicts_dict[objects['name']] = diccionario_invertido
+        # for key, objects in self.wikidata_properties_dict.items():
+        #     if 'filter-dict' in objects:
+        #         diccionario_invertido = {valor: clave for clave, valor in self.wikidata_properties_dict[key]['filter-dict'].items()}
+        #     else:
+        #         diccionario_invertido = {valor: clave for clave, valor in self.wikidata_properties_dict[key]['dict'].items()}
+        #     inverted_dicts_dict[objects['name']] = diccionario_invertido
 
-        count_type_dict = {}
+        
 
 
 
 
         fin = time.time()
+
+        self.write_data_csv()
+
 
         print("Tiempo estimado del proceso: {} segundos".format(fin - inicio))
 
@@ -331,42 +354,20 @@ class LinkByID():
         print("Enlaces totales conseguidos: {}".format(count_links))
         print("Relaciones entre entidades totales: {}".format(count_relations))
         # print("Enlaces de cada tipo:")
-        # for key, value in wikidata_properties_dict.items():
-        #     print("Enlaces conseguidos con {}: {}".format(value['name'], value['count-links']))
-        #     print("Total de conexiones de BibKG con {}: {}".format(value['name'], value['count-total']))
+        for key, value in self.wikidata_properties_dict.items():
+            print("Enlaces conseguidos con {}: {}".format(value['name'], value['count-links']))
+            print("Total de conexiones de BibKG con {}: {}".format(value['name'], value['count-total']))
 
-        # # for key, value in wikidata_properties_person_dict.items():
-        # #     print("Enlaces conseguidos con {}: {}".format(value['name'], value['count-links']))
-        # #     print("Total de conexiones de BibKG con {}: {}".format(value['name'], value['count-total']))
+        for key, value in wikidata_properties_person_dict.items():
+            print("Enlaces conseguidos con {}: {}".format(value['name'], value['count-links']))
+            print("Total de conexiones de BibKG con {}: {}".format(value['name'], value['count-total']))
 
         print("Enlaces totales escritos en BibKG: {}".format(count_links_writed))
 
 
-        #wikidata_properties_dict.update(wikidata_properties_person_dict)
+        self.wikidata_properties_dict.update(wikidata_properties_person_dict)
 
-        # folder = 'Link_by_id/data/'
-        # metadata_path = folder + 'count-id-links-upper-doi.csv'
-        # type_count_path = folder + 'count-links-type.csv'
 
-        #print("\nEscribiendo CSV de counts")
-
-        # with open(metadata_path, mode='w', newline='') as archivo_csv:
-        #     writer = csv.writer(archivo_csv)
-        #     writer.writerow(["ID", "Enlaces conseguidos", "Total de referencias en Wikidata"])
-        #     sorted_items = sorted(self.wikidata_properties_dict.items(), key=lambda x: x[1]['count-total'], reverse=True)
-        #     for llave, valor in sorted_items:
-        #         writer.writerow([valor['name'], valor['count-links'], valor['count-total']])
-
-        # #print("\nEscribiendo CSV de counts de tipos")
-
-        # with open(type_count_path, mode='w', newline='') as archivo_csv:
-        #     writer = csv.writer(archivo_csv)
-        #     writer.writerow(["Tipo", "Count"])
-        #     sorted_items = sorted(count_type_dict.items(), key=lambda x: x[1], reverse=True)
-        #     for llave, valor in sorted_items:
-        #         writer.writerow([llave, valor])
-
-        #print("Proceso completado")
 
         
 

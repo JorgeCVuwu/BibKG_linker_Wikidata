@@ -1,7 +1,7 @@
 import json
 import time
 import re
-import traceback
+import os
 
 def int_float(n):
     if n[-1:] == ".":
@@ -14,17 +14,108 @@ def int_float(n):
 
 class BibKGParser():
     
-    def __init__(self):
-        self.write_urls = ["bibkg_part1.json", "bibkg_part2.json", "bibkg_part3.json", "bibkg_part4.json"]
+    def __init__(self, parts_list):
+        self.write_urls = parts_list
+        self.bibkg_path = "bibkg_copy.json"
         self.input_url = "db/milledb/milleDB.dump"
         self.folder = "db/JSON/"
         self.limit = 144000000
         self.bibkg_dictionary = {}
 
+
+    #add_to_entity_dict: se almacena la cantidad de veces que es aludida una entidad como elemento principal de la línea
+    #(o sea, la entidad a la que se define en la línea, o la entidad a la que se le añade un nuevo valor en una propiedad)
+    def add_to_entity_dict(self, path):
+        with open(path, 'r') as bibkg:
+            for linea in bibkg:
+                entity = json.loads(linea)
+                id = entity['id']
+                self.entity_dict.setdefault(id, 0)
+                self.entity_dict[id] += 1
+
+
+    #write_new_part: Escribe las entidades y propiedades no repetidas en el archivo JSON nuevo
+    def write_new_part(self, bibkg, part_path):
+        with open(part_path, 'r') as p:
+            for linea in p:
+                entity = json.loads(linea)
+                if 'author_of' in entity:
+                    del entity['author_of']
+                id = entity['id']
+                if id not in self.repeated_dict:
+                    json.dump(entity, bibkg)
+                    bibkg.write('\n')
+                else:
+                    if id not in self.repeated_objects:
+                        self.repeated_objects[id] = entity
+                    else:
+                        repeated_object = self.repeated_objects[id]
+                        for key, value in entity.items():
+                            if key in repeated_object and key != "id" and type(repeated_object[key]) == list:
+                                for elemento in value:
+                                    if elemento not in repeated_object[key]:
+                                        self.repeated_objects[id][key].append(elemento)
+                                # if key not in self.repeated_counts:
+                                #     self.repeated_counts[key] = 0
+                                # self.repeated_counts[key] += 1
+                            else:
+                                self.repeated_objects[id][key] = value
+
+        #Se elimina la parte del archivo, al no utilizarse más a partir de este punto
+        os.remove(part_path)
+
+    #merge_bibkg_parts: junta todas las partes de JSON de BibKG a un único archivo JSON
+    #Está pensada para crear partes en potencias de 2 (1, 2, 4, 8...)
     def merge_bibkg_parts(self):
-        pass
+        n = len(self.write_urls)
+        count = 0
+        self.entity_dict = {}
+        self.repeated_dict = {}
+        self.repeated_objects = {}
+        #self.repeated_counts = {}
+
+        new_parts_path_list = []
+
+        while len(self.write_urls) != 1:
+
+            for i in range(0, n, 2):
+                bibkg_path_1, bibkg_path_2 = self.write_urls[i], self.write_urls[i + 1]
+                
+                self.add_to_entity_dict(bibkg_path_1)
+                self.add_to_entity_dict(bibkg_path_2)
+
+                # c_repeated = 0
+
+                for key, valor in self.entity_dict.items():
+                    if valor > 1:
+                        self.repeated_dict[key] = valor
+                        #c_repeated += 1
+
+                if len(self.write_urls) == 2:
+                    new_bibkg_path = 'bibkg.json'
+                else:
+                    new_bibkg_path = 'bibkg_' + str(count) + '.json'
+
+                with open(new_bibkg_path, 'w') as bibkg:
+                    self.write_new_part(bibkg, bibkg_path_1)
+                    self.write_new_part(bibkg, bibkg_path_2)
 
 
+                with open(new_bibkg_path, 'a') as bibkg:
+                    for _, value in self.repeated_objects.items():
+                        json.dump(value, bibkg)
+                        bibkg.write('\n')
+                    new_parts_path_list.append(new_bibkg_path)
+
+                self.entity_dict = {}
+                self.repeated_dict = {}
+                self.repeated_objects = {}
+
+            self.write_urls = new_parts_path_list
+        #self.repeated_counts = {}
+        
+
+    #parse_bibkg: crea archivos JSON por partes a partir del archivo dump de BibKG
     def parse_bibkg(self):
         n_of_parts = len(self.write_urls)
         segment_size = self.limit/n_of_parts
@@ -162,3 +253,18 @@ class BibKGParser():
                 json.dump(valor, f)
                 f.write('\n')
             print("\nArchivo {} escrito".format(z + 1))
+
+        #Liberar diccionario
+        self.bibkg_dictionary = {}
+
+
+if __name__ == "__main__":
+    inicio = time.time()
+
+    parts_list = ["bibkg_part1.json", "bibkg_part2.json", "bibkg_part3.json", "bibkg_part4.json"]
+    bibkg_parser = BibKGParser(parts_list)
+
+    bibkg_parser.parse_bibkg()
+    bibkg_parser.merge_bibkg_parts()
+
+    fin = time.time()

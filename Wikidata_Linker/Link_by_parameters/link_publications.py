@@ -174,9 +174,9 @@ def link_publications(bibkg_path, wikidata_person_path, wikidata_scholar_path, c
     count_links = 0
     count_links_name = 0
     count_links_alias = 0
-    for key, wikidata_entity in wikidata_author_dict.items():
+    for key, wikidata_entity in wikidata_author_dict.items(): ##wikidata author_dict: id author -> datos (publicaciones) 
         wikidata_publications = wikidata_entity['publications']
-        bibkg_entity = author_wikidata_id_dict[key]
+        bibkg_entity = author_wikidata_id_dict[key] #author_wikidata_id_dict: id wikidata -> id bibkg
         bibkg_publications = bibkg_entity['publications']
         name_values = [publication['name'] for publication in bibkg_publications.values()]
         repeated_names = set()

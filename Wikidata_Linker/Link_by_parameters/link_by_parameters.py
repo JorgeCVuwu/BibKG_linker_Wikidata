@@ -52,6 +52,10 @@ class LinkByParameters():
         self.count_author_links = 0
         self.count_journal_links = 0
 
+        self.count_fordidden_author = 0
+        self.count_fordidden_publication = 0
+        self.count_fordidden_journal = 0
+
     #link_authors: si se cumplen las condiciones, enlaza entidades de autores de BibKG y Wikidata
     def link_authors(self, bibkg_id, wikidata_id):
         writed_links_dict = self.wikidata_linker.writed_links_dict
@@ -61,10 +65,12 @@ class LinkByParameters():
                 writed_links_dict[bibkg_id] = wikidata_id
                 self.count_links += 1
                 self.count_author_links += 1
+                self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_{}_recursion_authors'.format(self.link_type)])
         #Si una entidad es relacionada con otra entidad a la ya asociada, se elimina la asociación
         elif writed_links_dict[bibkg_id] != wikidata_id:
             forbidden_links_dict[bibkg_id] = True
             del writed_links_dict[bibkg_id]
+            self.count_fordidden_author += 1
 
     #link_authors: si se cumplen las condiciones, enlaza entidades de publicaciones (y entidades con autores en general) de BibKG y Wikidata
     def link_publications(self, bibkg_id, wikidata_id):
@@ -74,10 +80,15 @@ class LinkByParameters():
             if bibkg_id not in forbidden_links_dict:
                 writed_links_dict[bibkg_id] = wikidata_id
                 self.count_links += 1
-                self.count_publication_links += 1        
+                self.count_publication_links += 1
+                self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_{}_recursion_publications'.format(self.link_type)])        
         elif writed_links_dict[bibkg_id] != wikidata_id:
+            # print("a: {}".format(bibkg_id))
+            # print("b: {}".format(wikidata_id))
+            # print("c: {}".format(writed_links_dict[bibkg_id]))
             forbidden_links_dict[bibkg_id] = True
-            del writed_links_dict[bibkg_id]    
+            del writed_links_dict[bibkg_id]
+            self.count_fordidden_publication += 1    
 
     #link_authors: si se cumplen las condiciones, enlaza entidades de revistas de BibKG y Wikidata
     def link_journals(self, bibkg_id, wikidata_id):
@@ -87,15 +98,18 @@ class LinkByParameters():
             writed_links_dict[bibkg_id] = wikidata_id    
             self.count_links += 1
             self.count_journal_links += 1
+            self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_{}_recursion_journals'.format(self.link_type)])
         elif writed_links_dict[bibkg_id] != wikidata_id:
             forbidden_links_dict[bibkg_id] = True
             del writed_links_dict[bibkg_id]
+            self.count_fordidden_journal += 1
 
     #link_by_parameters: enlaza BibKG con Wikidata enlazando entidades que forman parte de los valores de las propiedades de entidades
     #ya enlazadas entre BibKG con Wikidata
     #Se enlazan autores (link_authors()), publicaciones (link_publications()) y revistas (link_journals())
-    def link_by_parameters(self):
+    def link_by_parameters(self, link_type):
 
+        self.link_type = link_type
         print("Guardando datos de BibKG")
         #primer paso: guardar datos necesarios de BibKG en memoria
         with open(self.wikidata_linker.bibkg_path, 'r') as bibkg:
@@ -147,6 +161,7 @@ class LinkByParameters():
                             self.bibkg_publications_dict[wikidata_id] = {'id':id, 'in_journal':entity_journal}
 
 
+
         print("Agregando IDs a propiedades que asocian entidades")
         for key, entity in self.bibkg_publications_dict.items():
             id = entity['id']
@@ -166,11 +181,12 @@ class LinkByParameters():
             for linea in wikidata_person:
                 entity = json.loads(linea)
                 id = entity['id']
+                self.wikidata_person_dict[id] = {'publications':{}}
                 if 'en' in entity['name']:
-                    self.wikidata_person_dict[id] = entity['name']['en']['value']
+                    self.wikidata_person_dict[id][name] = entity['name']['en']['value']
                 else:
                     for _, valor in entity['name'].items():
-                        self.wikidata_person_dict[id] = valor['value']
+                        self.wikidata_person_dict[id][name] = valor['value']
                         break
                 
         print("Leyendo publicaciones de Wikidata")
@@ -196,7 +212,7 @@ class LinkByParameters():
                                 self.string_authors_dict[wikidata_author_id] = wikidata_author_id
 
                     #Caso de entidades de autores de publicaciones
-                    if self.wikidata_author_property in claims:
+                    if self.wikidata_author_property in claims and 'has_author' in bibkg_entity:
                         authors = claims[self.wikidata_author_property]
                         author_names_list_bibkg = {}
                         order_list_bibkg = {}
@@ -217,22 +233,27 @@ class LinkByParameters():
                         for author in authors:
                             if 'datavalue' in author['mainsnak']:
                                 wikidata_author_id = author['mainsnak']['datavalue']['value']
-                                wikidata_author_name = process_names(self.wikidata_person_dict[wikidata_author_id])
+                                wikidata_author_name = self.wikidata_person_dict.get(wikidata_author_id)
                                 if 'order' in author:
                                     wikidata_author_order = author['order']
                                     name_order = order_list_bibkg.get(wikidata_author_order)
+                                    bibkg_id = ''
                                     if name_order:
                                         bibkg_id = author_names_list_bibkg.get(name_order)
                                         #bibkg_id = author_names_list_bibkg[name_order]
                                     else:
-                                        bibkg_id = author_names_list_bibkg.get(wikidata_author_name)
+                                        if wikidata_author_name:
+                                            wikidata_author_name = process_names(wikidata_author_name)
+                                            bibkg_id = author_names_list_bibkg.get(wikidata_author_name)
                                         #bibkg_id = author_names_list_bibkg[wikidata_author_name]
                                     if bibkg_id:
-                                        self.link_authors(bibkg_id, id)
+                                        self.link_authors(bibkg_id, wikidata_author_id)
                                 else:
-                                    bibkg_id = author_names_list_bibkg.get(wikidata_author_name)
-                                    if bibkg_id:
-                                        self.link_authors(bibkg_id, id)
+                                    if wikidata_author_name:
+                                        wikidata_author_name = process_names(wikidata_author_name)
+                                        bibkg_id = author_names_list_bibkg.get(wikidata_author_name)
+                                        if bibkg_id:
+                                            self.link_authors(bibkg_id, wikidata_author_id)
                 
                 #Almacenar publicaciones de autores para link_publications
                 if self.wikidata_author_property in claims:
@@ -253,17 +274,14 @@ class LinkByParameters():
                                             for subalias in alias:
                                                 alias_value = subalias['value']
                                                 author_entity['aliases'].append(process_names(alias_value))
-                                try:                                
-                                    self.author_wikidata_id_dict[wikidata_author_id]['publications'][id] = author_entity
-                                except:
-                                    print(self.author_wikidata_id_dict[wikidata_author_id]['publications'])
-                                    print(author_entity)
-                                    break
+
+                                if wikidata_author_id in self.wikidata_person_dict:
+                                    self.wikidata_person_dict[wikidata_author_id]['publications'][wikidata_id] = author_entity
 
                 #Para caso link_journals
                 if self.wikidata_published_in_property in claims:
                     bibkg_entity = self.bibkg_publications_dict.get(wikidata_id)
-                    if bibkg_entity and 'in_journal' in entity:
+                    if bibkg_entity and 'in_journal' in bibkg_entity:
                         bibkg_journal_id = bibkg_entity['in_journal'][0]['value']
                         #print(bibkg_journal_id)
                         publishers = claims[self.wikidata_published_in_property]
@@ -277,29 +295,41 @@ class LinkByParameters():
         
         print("Comparando publicaciones de autores")
         #Comparar publicaciones de autores de Wikidata con BibKG guardados en memoria
-        for key, wikidata_entity in self.author_wikidata_id_dict.items():
+        for key, wikidata_entity in self.wikidata_person_dict.items():
             wikidata_publications = wikidata_entity['publications']
-            bibkg_entity = self.author_wikidata_id_dict[key]
-            bibkg_publications = bibkg_entity['publications']
-            name_values = [publication['name'] for publication in bibkg_publications.values()]
-            repeated_names = set()
-            for name in name_values:
-                if name_values.count(name) > 1:
-                    repeated_names.add(name)
-            for bibkg_key, bibkg_publication in bibkg_publications.items():
-                bibkg_name = bibkg_publication['name']
+            bibkg_entity = self.author_wikidata_id_dict #####
+            bibkg_publications = bibkg_entity.get('publications')
 
-                # definir parametros de comparacion
-                for wikidata_key, value in wikidata_publications.items():
-                    if 'name' in value and bibkg_name not in repeated_names:
-                        wikidata_name = value['name']
-                        if bibkg_name == wikidata_name:
-                            self.link_publications(bibkg_key, wikidata_key)
-                        elif 'aliases' in bibkg_publication:
-                            bibkg_aliases = bibkg_publication['aliases']
-                            if wikidata_name in bibkg_aliases:
-                                self.link_publications(bibkg_key, wikidata_key)
-                        
+            if bibkg_publications:
+            
+                name_values = [publication['name'] for publication in bibkg_publications.values() if 'name' in publication]
+                repeated_names = set()
+                for name in name_values:
+                    if name_values.count(name) > 1:
+                        repeated_names.add(name)
+                for bibkg_key, bibkg_publication in bibkg_publications.items():
+                    if 'name' in bibkg_publication:
+                        bibkg_name = bibkg_publication['name']
+
+                        # definir parametros de comparacion
+                        for wikidata_key, value in wikidata_publications.items():
+                            if 'name' in value and bibkg_name not in repeated_names:
+                                wikidata_name = value['name']
+                                if bibkg_name == wikidata_name:
+                                    self.link_publications(bibkg_key, wikidata_key)
+                                elif 'aliases' in bibkg_publication:
+                                    bibkg_aliases = bibkg_publication['aliases']
+                                    if wikidata_name in bibkg_aliases:
+                                        self.link_publications(bibkg_key, wikidata_key)
+
+        print(self.count_links)
+        print(self.count_author_links)
+        print(self.count_publication_links)
+        print(self.count_journal_links)
+
+        print(self.count_fordidden_author)
+        print(self.count_fordidden_publication)
+        print(self.count_fordidden_journal)            
         return self.count_links
 
 
