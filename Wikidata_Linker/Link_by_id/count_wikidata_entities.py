@@ -15,21 +15,24 @@ wikidata_else_path = os.path.join(carpeta_externa, wikidata_else_name)
 count_doi = 0
 count_not_doi = 0
 
-with open(wikidata_scholar_path, 'r') as wikidata_person:
+with open(wikidata_scholar_path, 'r') as wikidata:
     c = 0
-    for linea in wikidata_person:
+    for linea in wikidata:
         entity = json.loads(linea)
         id = entity['id']
         claims = entity['claims']
-        if 'P50' in claims:
-            for author in claims['P50']:
-                if 'order' in author:
-                    print(id)
-                    print(claims['P50'])
-                    c+= 1
-                    break
+        if id == 'Q87813264':
+            print(claims['P356'])
+            break
+        # if 'P50' in claims:
+        #     for author in claims['P50']:
+        #         if 'order' in author:
+        #             print(id)
+        #             print(claims['P50'])
+        #             c+= 1
+        #             break
                     
-            if c > 2:
-                break
+        #     if c > 2:
+        #         break
 print(count_doi)
 print(count_not_doi)

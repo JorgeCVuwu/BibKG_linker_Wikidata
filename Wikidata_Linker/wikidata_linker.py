@@ -28,9 +28,13 @@ class WikidataLinker:
         self.forbidden_links_dict = {}
         self.writed_id_entities = {}
 
-        self.csv_data = [
-            ['entity_id', 'wikidata_id', 'link_method']
+        self.csv_data_header = [
+            ['entity_id', 'wikidata_id', 'linked_by_id', 'linked_by_id_recursion_authors', 'linked_by_id_recursion_journals',
+             'linked_by_id_recursion_publications', 'linked_by_comparisons', 'linked_by_comparisons_recursion_authors', 
+             'linked_by_comparisons_recursion_journals', 'linked_by_comparisons_recursion_publications']
         ]
+
+        self.csv_data = {}
 
         self.time = 0
 
@@ -39,15 +43,22 @@ class WikidataLinker:
         with open(self.link_csv_path, mode='w', newline='') as archivo_csv:
             self.count_link_types = {}
             writer = csv.writer(archivo_csv)
-            for fila in self.csv_data:
-                bibkg_id = fila[0]
-                link_type = fila[2]
+            writer.writerow(self.csv_data_header)
+            for bibkg_id, link_data in self.csv_data.values():
+                wikidata_id = link_data[0]
+                fila = [bibkg_id, wikidata_id]
+                n = len(link_data)
+                for link_properties in self.csv_data_header:
+                    if link_data in link_properties:
+                        fila.append('1')
+                    else:
+                        fila.append('')
+
                 if bibkg_id not in self.forbidden_links_dict:
                     writer.writerow(fila)
                     self.total_links_writed += 1
                     #se cuentan los tipos de enlaces en un diccionario según el tipo de enlace
-                    self.count_link_types[link_type] = self.count_link_types.setdefault(link_type, 0) + 1
-                    
+                                  
 
         #write_metadata_csv: guarda los metadatos del proceso (datos principales relacionados a la ejecución del proceso y conteos de enlazamientos)
     def write_metadata_csv(self):
@@ -60,14 +71,14 @@ class WikidataLinker:
             for fila in data:
                 writer.writerow(fila)
 
-    def write_id_links_csv(self):
-        with open(self.link_id_csv_path, mode='w', newline='') as archivo_csv:
-            writer = csv.writer(archivo_csv)
-            for fila in self.csv_data:
-                bibkg_id = fila[0]
-                link_type = fila[2]
-                if bibkg_id not in self.forbidden_links_dict:
-                    writer.writerow(fila)
+    # def write_id_links_csv(self):
+    #     with open(self.link_id_csv_path, mode='w', newline='') as archivo_csv:
+    #         writer = csv.writer(archivo_csv)
+    #         for fila in self.csv_data:
+    #             bibkg_id = fila[0]
+    #             link_type = fila[2]
+    #             if bibkg_id not in self.forbidden_links_dict:
+    #                 writer.writerow(fila)
 
 
 
@@ -82,9 +93,9 @@ class WikidataLinker:
 
     #link_by_parameters: enlaza entidades a partir de las entidades enlazadas desde el punto que se ejecuta la función,
     #a partir de las entidades a las que se hace referencia en las propiedades de las ya enlazadas
-    def link_by_parameters(self):
+    def link_by_parameters(self, link_type):
         id_linker = link_by_parameters.LinkByParameters(self)
-        return id_linker.link_by_parameters()
+        return id_linker.link_by_parameters(link_type)
 
     #link_by_comparisons: enlaza entidades mediante comparación de propiedades con el mismo valor (descartando o asegurando enlaces)
     #no se consideran a las propiedades de IDs en este paso (se consideraron en link_by_id)
@@ -128,11 +139,21 @@ if __name__ == "__main__":
     count_links = wikidata_linker.link_by_comparisons()
     print(count_links)
     
+    count_links = 1
+
     while count_links != 0:
         count_links = wikidata_linker.link_by_parameters('comparisons')
         print(count_links)
 
     fin = time.time()
+
+    wikidata_linker.time = fin - inicio
+
+    wikidata_linker.write_links_csv()
+
+    wikidata_linker.write_metadata_csv()
+
+    print("Enlaces totales: {}".format(wikidata_linker.total_links_writed))
 
     print("Tiempo de ejecución: {}".format(fin - inicio))
 

@@ -29,6 +29,13 @@ def detect_page(url):
         page_suffix = url
     return page_prefix, page_suffix
 
+def verify_substring(list, substring):
+    element_list = []
+    for element in list:
+        if substring in element:
+            element_list.append(element)
+    return element_list
+
 #class LinkByID(WikidataLinker):
 class LinkByID():
 
@@ -54,13 +61,44 @@ class LinkByID():
         self.scholar_dict = {}
         self.orcid_dict = {}
 
+        self.linked_property_dict = {}
+
         self.wikidata_in_file = {}
 
+        self.wikidata_linked_id_entities = {}
         self.linked_properties_dict = {}
 
-
-        self.bibkg_link_sources_path = "data/wikidata_linker/bibkg link sources.csv"
+        self.isbn_links_dict = {}
         
+        self.count_repeated_wikidata_entity = 0
+        self.count_filtered_corr = 0
+        self.count_duplicate_wikidata_links = 0
+        self.count_duplicate_wikidata_links_id_linker = 0
+        self.count_duplicate_wikidata_links_previously_linked = 0
+        self.count_filtered_isbn = 0
+
+        self.count_links = 0
+        self.count_relations = 0
+
+        doi_prefix = 'doi.org/'
+        arxiv_prefix = 'arxiv.org/abs/'
+        ieeexplore_prefix = 'ieeexplore.ieee.org/'
+        handle_prefix = 'hdl.handle.net/'
+        dnb_prefix = 'd-nb.info/'
+        acm_prefix = 'dl.acm.org/'
+        ethos_prefix = 'ethos.bl.uk/'
+
+        #Diccionario de funciones de procesamiento de la ID relacionadas con cada propiedad (que permiten tener el mismo formato del ID
+        # tanto en BibKG como en Wikidata)
+        self.url_functions_dict = {doi_prefix:{'name':'DOI','function':self.process_doi}, 
+                            arxiv_prefix:{'name':'arXiv ID','function':self.process_arxiv},
+                            ieeexplore_prefix:{'name':'ieeeXplore','function':self.process_ieeexplore},
+                            handle_prefix:{'name':'hdl.handle','function':self.process_handle},
+                            dnb_prefix:{'name':'d-nb.info','function':self.process_dnb},
+                            acm_prefix:{'name':'ACM Classification Code','function':self.process_acm},
+                            ethos_prefix:{'name':'ethos','function':self.process_ethos}
+                            }
+
         #publication properties
         dblp_properties = ['P8978', 'P8926', 'P10692']
         doi_property_w = 'P356'
@@ -72,7 +110,10 @@ class LinkByID():
         ethos_property_w = 'P4536'
         isbn_properties = ['P957', 'P212']
 
-
+        #person properties
+        dblp_author_property = 'P2456'
+        orcid_property = 'P496'
+        google_scholar_property = 'P1960'
 
         self.wikidata_properties_dict = {dblp_properties[0]:{'name':'DBLP publication ID','dict':self.dblp_dict,'filter-dict':self.dblp_publication_dict,'count-links':0, 'count-total':0}, 
                                         dblp_properties[1]:{'name':'DBLP venue ID','dict':self.dblp_dict,'filter-dict':self.dblp_venue_dict,'count-links':0, 'count-total':0}, 
@@ -87,12 +128,20 @@ class LinkByID():
                                         acm_properties_w[2]:{'name':'ACM Digital Library event ID','dict':self.acm_dict,'count-links':0, 'count-total':0}, 
                                         ethos_property_w:{'name':'ethos','dict':self.ethos_dict,'count-links':0, 'count-total':0},
                                         isbn_properties[0]:{'name':'ISBN-10','dict':self.isbn_dict,'count-links':0, 'count-total':0},
-                                        isbn_properties[1]:{'name':'ISBN-13','dict':self.isbn_dict,'count-links':0, 'count-total':0}}
+                                        isbn_properties[1]:{'name':'ISBN-13','dict':self.isbn_dict,'count-links':0, 'count-total':0},
+                                        dblp_author_property:{'name':'DBLP author ID', 'dict':self.dblp_person_dict, 'count-links':0, 'count-total':0},
+                                        orcid_property:{'name':'ORCID ID','dict':self.orcid_dict, 'count-links':0, 'count-total':0},
+                                        google_scholar_property:{'name':'Google Scholar ID', 'dict':self.scholar_dict, 'count-links':0, 'count-total':0}
+                                        }
 
+        #Diccionario de valores asociados a las propiedades de personas
+        # self.wikidata_properties_person_dict = {dblp_author_property:{'name':'DBLP author ID', 'dict':self.dblp_person_dict, 'count-links':0, 'count-total':0},
+        #                                 orcid_property:{'name':'ORCID ID','dict':self.orcid_dict, 'count-links':0, 'count-total':0},
+        #                                 google_scholar_property:{'name':'Google Scholar ID', 'dict':self.scholar_dict, 'count-links':0, 'count-total':0}}
 
-        folder = 'data/'
+        folder = 'data/wikidata_linker/'
         self.metadata_path = folder + 'count-id-links-test.csv'
-        self.linked_id_csv_path = folder + 'id-links.csv'
+        self.linked_id_csv_path = folder + 'id-links-corr.csv'
     #funciones process: ajustan el formato del string de la ID de BibKG de cada tipo para poder compararse con Wikidata
     def process_dblp_url(self, entity):
         #print(url)
@@ -111,7 +160,7 @@ class LinkByID():
             url_name = url_last.replace(".html", "")
         dblp_id = url1 + url_name
         #dblp_dict[dblp_id] = id
-        add_to_dict(self.dblp_dict, dblp_id, id)
+        add_to_dict(self.dblp_dict, dblp_id, entity['id'])
 
     def process_doi(self, ee, id):
         doi_prefix = 'doi.org/'
@@ -166,30 +215,48 @@ class LinkByID():
         add_to_dict(dict, content, id)
 
     #link_entities: enlaza entidades guardándolas en la tabla para el CSV, y almacena datos del enlazamiento
-    def link_entities(self, property_id, id, property_name, valor_at):
+    def link_entities(self, property_id, id, key, valor_at):
+            property_name = self.wikidata_properties_dict[key]['name']
             writed_links_dict = self.wikidata_linker.writed_links_dict
             writed_links_dict[property_id] = id
-            self.wikidata_linker.csv_data.append([property_id, id, 'linked_by_id'])
-            self.linked_properties_dict.setdefault(id, {'wikidata-id':property_id})
-            self.linked_properties_dict[property_name] = valor_at
-            self.wikidata_linker.writed_id_entities[property_id] = True
+            self.wikidata_linker.csv_data.setdefault(property_id, [id])
+            self.wikidata_linker.csv_data[property_id].append('linked_by_id')
+            #self.wikidata_linker.csv_data.append([property_id, id, 'linked_by_id'])
+            # if property_id in self.linked_properties_dict: #
+            #     i = 2
+            #     while True:
+            #         repeated_property_id = property_id + '###' + str(i)
+            #         if repeated_property_id not in self.linked_properties_dict:
+            #             property_id = repeated_property_id
+            #             break
+            #         i += 1 #
+            self.linked_properties_dict.setdefault(property_id, {'wikidata-id':id, 'first-property-linker':key})
+            self.linked_properties_dict[property_id][property_name] = valor_at
+            if property_name == 'ISBN-10' or property_name == 'ISBN-13':
+                self.isbn_links_dict[id] = property_id
 
     #write_data_csv: escribe los enlaces de cada entidad de BibKG con Wikidata, junto con las fuentes de datos enlazadas y sus valores de IDs
     def write_id_linked_entities(self):
         with open(self.linked_id_csv_path, mode='w', newline='') as archivo_csv:
             writer = csv.writer(archivo_csv)
             csv_id_data = ['bibkg_id', 'wikidata_id']
-            for property in self.wikidata_properties_dict:
-                csv_id_data.append(property)
+            for key, property in self.wikidata_properties_dict.items():
+                csv_id_data.append(property['name'])
             writer.writerow(csv_id_data)
-            for key, value in self.linked_properties_dict:
-                row = [key, value['wikidata-id']]
-                for property in self.wikidata_properties_dict:
-                    if property in value:
-                        row.append(value[property])
-                    else:
-                        row.append('')
-                writer.writerow(row)
+            for key, value in self.linked_properties_dict.items():
+                #En este caso, si el ID no se encuentra "prohibido", se almacena como enlace
+                if key not in self.wikidata_linker.forbidden_links_dict:
+                    self.wikidata_linker.writed_id_entities[key] = True
+                    row = [key, value['wikidata-id']]
+                    first_property_key = value['first-property-linker']
+                    self.wikidata_properties_dict[first_property_key]['count-links'] += 1
+                    for key, property in self.wikidata_properties_dict.items():
+                        if property['name'] in value:
+                            row.append(value[property['name']])
+                            property['count-total'] += 1
+                        else:
+                            row.append('')
+                    writer.writerow(row)
         
     #write_count_data_csv: Escribe los conteos del proceso (conteos de cada tipo de enlace y de cada referencia encontrada)
     def write_count_data_csv(self, time):
@@ -206,39 +273,6 @@ class LinkByID():
     # WikidataLinker 
     def link_by_id(self):
         
-        doi_prefix = 'doi.org/'
-        arxiv_prefix = 'arxiv.org/abs/'
-        ieeexplore_prefix = 'ieeexplore.ieee.org/'
-        handle_prefix = 'hdl.handle.net/'
-        dnb_prefix = 'd-nb.info/'
-        acm_prefix = 'dl.acm.org/'
-        ethos_prefix = 'ethos.bl.uk/'
-
-
-        count_links = 0
-        count_relations = 0
-
-        #person properties
-        dblp_author_property = 'P2456'
-        orcid_property = 'P496'
-        google_scholar_property = 'P1960'
-
-
-        url_functions_dict = {doi_prefix:{'name':'DOI','function':self.process_doi}, 
-                            arxiv_prefix:{'name':'arXiv ID','function':self.process_arxiv},
-                            ieeexplore_prefix:{'name':'ieeeXplore','function':self.process_ieeexplore},
-                            handle_prefix:{'name':'hdl.handle','function':self.process_handle},
-                            dnb_prefix:{'name':'d-nb.info','function':self.process_dnb},
-                            acm_prefix:{'name':'ACM Classification Code','function':self.process_acm},
-                            ethos_prefix:{'name':'ethos','function':self.process_ethos}
-                            }
-
-
-
-        wikidata_properties_person_dict = {dblp_author_property:{'name':'DBLP author ID', 'dict':self.dblp_person_dict, 'count-links':0, 'count-total':0},
-                                        orcid_property:{'name':'ORCID ID','dict':self.orcid_dict, 'count-links':0, 'count-total':0},
-                                        google_scholar_property:{'name':'Google Scholar ID', 'dict':self.scholar_dict, 'count-links':0, 'count-total':0}}
-
         #leer BibKG y capturar los ee
 
         inicio = time.time()
@@ -248,9 +282,9 @@ class LinkByID():
                 id = entity['id']
                 if 'ee' in entity:
                     ee = re.sub(r'^https?://', '', entity['ee'])
-                    for key in url_functions_dict:
+                    for key in self.url_functions_dict:
                         if key in ee:
-                            key_dict = url_functions_dict[key]
+                            key_dict = self.url_functions_dict[key]
                             key_function = key_dict['function']
                             key_function(ee, id)
                             break
@@ -287,26 +321,99 @@ class LinkByID():
                             property = self.wikidata_properties_dict[key]
                             property_name = property['name']
                             property_dict = property['dict']
-                            if valor_at in property_dict:
-                                property_id = property_dict[valor_at]
-                                if 'filter-dict' in property:
-                                    self.wikidata_properties_dict[key]['filter-dict'][valor_at] = property_id
-                                if property_id not in self.wikidata_linker.writed_links_dict and id not in self.wikidata_in_file:
-                                    self.link_entities(property_id, id, property_name, valor_at)
+                            entity_rank = valor.get('rank')
+                            #verifica que el valor de la propiedad no posea el status 'deprecated' (o sea, que Wikidata considera un valor incorrecto)
+                            if entity_rank != 'deprecated':
+                                #Si el valor de la propiedad de Wikidata está almacenado en el diccionario respectivo de BibKG
+                                if valor_at and valor_at in property_dict:
+                                    property_id = property_dict[valor_at]
+                                    if 'filter-dict' in property:
+                                        self.wikidata_properties_dict[key]['filter-dict'][valor_at] = property_id
+                                    if property_id not in self.wikidata_linker.writed_links_dict and id not in self.wikidata_in_file:   
+                                        wikidata_linked_entities = self.wikidata_linked_id_entities        
+                                        if id not in wikidata_linked_entities:
+                                            self.link_entities(property_id, id, key, valor_at)
+                                            wikidata_linked_entities[id] = [property_id]
 
-                                property['count-total'] += 1
-                                count_relations += 1
-                                break
-                            elif property_name == 'DOI' and valor_at.upper() in property_dict:
-                                property_id = property_dict[valor_at.upper()]
-                                if property_id not in self.wikidata_linker.writed_links_dict and id not in self.wikidata_in_file:
-                                    self.link_entities(property_id, id, property_name, valor_at)
-                                property['count-total'] += 1
-                                count_relations += 1
-                                break
-                # if count_links > 1000:
-                #     break
+                                        else:
+                                            if '_corr_' in property_id:
+                                                self.count_filtered_corr += 1
+                                                pass
+                                            elif property_name == 'ISBN-10' or property_name == 'ISBN-13':
+                                                self.count_filtered_isbn += 1
+                                                pass
+                                            else:
+                                                #self.link_entities(property_id, id, property_name, valor_at)
+                                                #wikidata_linked_entities[id].append(property_id)
+                                                self.count_repeated_wikidata_entity += 1
+                                                for bibkg_id in wikidata_linked_entities[id]:
+                                                    self.wikidata_linker.forbidden_links_dict[bibkg_id] = True
+                                    #Agregar ID de la fuente enlazamiento, en caso de que ya estuviera enlazado
+                                    elif self.wikidata_linker.writed_links_dict.get(property_id) == id:
+                                        self.linked_properties_dict[property_id][property_name] = valor_at
+                                    #revisar enlaces repetidos
+                                    else:
+                                        if property_id in self.wikidata_linker.writed_links_dict and self.wikidata_linker.writed_links_dict[property_id] != id:
+                                        #if self.wikidata_linker.writed_links_dict.get(property_id) != id:
+                                            self.count_duplicate_wikidata_links += 1
+                                            self.count_duplicate_wikidata_links_id_linker += 1
+                                            #self.link_entities(property_id, id, property_name, valor_at)
 
+                                            if self.count_duplicate_wikidata_links_id_linker < 10:
+                                                print(id)
+                                                print(property_id)
+                                                print(self.wikidata_linker.writed_links_dict[property_id])
+
+                                        if id in self.wikidata_in_file and self.wikidata_in_file[id] != property_id:
+                                        #elif self.wikidata_in_file.get(id) != property_id:
+                                            self.count_duplicate_wikidata_links += 1
+                                            self.count_duplicate_wikidata_links_previously_linked += 1
+                                                                                      
+
+                                    #property['count-total'] += 1
+                                    self.count_relations += 1
+                                    break
+                                #Si la propiedad es DOI
+                                elif property_name == 'DOI' and valor_at.upper() in property_dict:
+                                    property_id = property_dict[valor_at.upper()]
+                                    if property_id not in self.wikidata_linker.writed_links_dict and id not in self.wikidata_in_file:
+                                        wikidata_linked_entities = self.wikidata_linked_id_entities
+                                        if id not in wikidata_linked_entities:
+                                            self.link_entities(property_id, id, key, valor_at)
+                                            wikidata_linked_entities[id] = [property_id]
+                                        #Agregar ID de la fuente enlazamiento, en caso de que ya estuviera enlazado
+                                        elif self.wikidata_linker.writed_links_dict.get(property_id) == id:
+                                            self.linked_properties_dict[property_id][property_name] = valor_at
+                                        else:
+                                            corr_ids = verify_substring(wikidata_linked_entities[id], '_corr_')
+                                            self.link_entities(property_id, id, key, valor_at) #
+                                            if id in self.isbn_links_dict:
+                                                self.wikidata_linker.forbidden_links_dict[self.isbn_links_dict[id]] = True
+                                                self.isbn_links_dict.remove(id)
+                                            if corr_ids:
+                                                for corr_id in corr_ids:
+                                                    self.wikidata_linker.forbidden_links_dict[corr_id] = True
+                                                    wikidata_linked_entities[id].remove(corr_id)
+                                            else:
+                                                #wikidata_linked_entities[id].append(property_id) #
+                                                self.count_repeated_wikidata_entity += 1
+                                                for bibkg_id in wikidata_linked_entities[id]:
+                                                    self.wikidata_linker.forbidden_links_dict[bibkg_id] = True
+                                    #revisar enlaces repetidos
+                                    else:
+                                        if property_id in self.wikidata_linker.writed_links_dict and self.wikidata_linker.writed_links_dict[property_id] != id:
+                                        #if self.wikidata_linker.writed_links_dict.get(property_id) != id:
+                                            self.count_duplicate_wikidata_links += 1
+                                            self.count_duplicate_wikidata_links_id_linker += 1
+                                            #self.link_entities(property_id, id, property_name, valor_at)
+                                        if id in self.wikidata_in_file and self.wikidata_in_file[id] != property_id:
+                                        #elif self.wikidata_in_file.get(id) != property_id:
+                                            self.count_duplicate_wikidata_links += 1
+                                            self.count_duplicate_wikidata_links_previously_linked += 1                                                   
+
+                                    #property['count-total'] += 1
+                                    self.count_relations += 1
+                                    break
 
         #Enlazar personas con el mismo ID
         with open(self.wikidata_linker.wikidata_person_path, 'r') as wikidata_person:
@@ -315,35 +422,65 @@ class LinkByID():
                 id = entity['id']
                 claims = entity['claims'].items()
                 for key, value in claims:
-                    if key in wikidata_properties_person_dict:
+                    if key in self.wikidata_properties_dict:
                         for valor in value:
                             try:
                                 valor_at = valor['mainsnak']['datavalue']['value']
                             except:
                                 continue
-                            property = wikidata_properties_person_dict[key]
+                            property = self.wikidata_properties_dict[key]
                             property_dict = property['dict']
-                            if valor_at in property_dict:
-                                property_id = property_dict[valor_at]
-                                if property_id not in self.wikidata_linker.writed_links_dict and id not in self.wikidata_in_file:
-                                    self.link_entities(property_id, id, property_name, valor_at)
-                                property['count-total'] += 1
-                                count_relations += 1
-                                break
+                            property_name = property['name']
+                            entity_rank = valor.get('rank')
+                            if entity_rank != 'deprecated':
+                                wikidata_linked_entities = self.wikidata_linked_id_entities
+                                if valor_at in property_dict:
+                                    property_id = property_dict[valor_at]
+                                    if property_id not in self.wikidata_linker.writed_links_dict and id not in self.wikidata_in_file:
+
+                                        if id not in wikidata_linked_entities: ####
+                                            self.link_entities(property_id, id, key, valor_at)####
+                                        else:
+                                            self.count_repeated_wikidata_entity += 1
+                                            for bibkg_id in wikidata_linked_entities[id]:
+                                                self.wikidata_linker.forbidden_links_dict[bibkg_id] = True                                            
+                                        wikidata_linked_entities[id] = [property_id]
+                                    elif self.wikidata_linker.writed_links_dict.get(property_id) == id:
+                                        self.linked_properties_dict[property_id][property_name] = valor_at
+                                    #revisar enlaces repetidos
+                                    else:
+                                        if self.wikidata_linker.writed_links_dict.get(property_id) != id:
+                                            self.count_duplicate_wikidata_links += 1
+                                            self.count_duplicate_wikidata_links_id_linker += 1
+                                            #self.link_entities(property_id, id, property_name, valor_at)
+                                        elif self.wikidata_in_file.get(id) != property_id:
+                                            self.count_duplicate_wikidata_links += 1
+                                            self.count_duplicate_wikidata_links_previously_linked += 1  
+                                    #property['count-total'] += 1
+                                    self.count_relations += 1
+                                    break
              
         print("Escribiendo enlaces en BibKG")
 
         count_links_writed = 0
 
-        self.wikidata_properties_dict.update(wikidata_properties_person_dict)
+        #self.wikidata_properties_dict.update(self.wikidata_properties_person_dict)
 
         
 
         fin = time.time()
 
-        self.write_count_data_csv()
+        tiempo = fin - inicio
+        self.write_count_data_csv(tiempo)
         self.write_id_linked_entities()
 
+        print("IDs con _corr filtrados de enlazamiento: {}".format(self.count_filtered_corr))
+        print("IDs de BibKG con entidades repetidas de Wikidata enlazados: {}".format(self.count_repeated_wikidata_entity))
+
+        print("Enlaces con ISBN filtrados: {}".format(self.count_filtered_isbn))
+        print("Entidades de BibKG relacionadas con más de 1 entidad de Wikidata: {}".format(self.count_duplicate_wikidata_links))
+        print("Duplicaciones por el método de enlaces por IDs: {}".format(self.count_duplicate_wikidata_links_id_linker))
+        print("Duplicaciones con respecto al enlace creado previamente: {}".format(self.count_duplicate_wikidata_links_previously_linked))
 
         print("Tiempo estimado del proceso: {} segundos".format(fin - inicio))
 

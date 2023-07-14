@@ -36,6 +36,7 @@ class BibKGParser():
 
     #write_new_part: Escribe las entidades y propiedades no repetidas en el archivo JSON nuevo
     def write_new_part(self, bibkg, part_path):
+        part_path = self.folder + part_path
         with open(part_path, 'r') as p:
             for linea in p:
                 entity = json.loads(linea)
@@ -60,9 +61,8 @@ class BibKGParser():
                                 # self.repeated_counts[key] += 1
                             else:
                                 self.repeated_objects[id][key] = value
-
-        #Se elimina la parte del archivo, al no utilizarse más a partir de este punto
         os.remove(part_path)
+
 
     #merge_bibkg_parts: junta todas las partes de JSON de BibKG a un único archivo JSON
     #Está pensada para crear partes en potencias de 2 (1, 2, 4, 8...)
@@ -80,6 +80,7 @@ class BibKGParser():
 
             for i in range(0, n, 2):
                 bibkg_path_1, bibkg_path_2 = self.write_urls[i], self.write_urls[i + 1]
+                
                 
                 self.add_to_entity_dict(bibkg_path_1)
                 self.add_to_entity_dict(bibkg_path_2)
@@ -120,6 +121,8 @@ class BibKGParser():
         n_of_parts = len(self.write_urls)
         segment_size = self.limit/n_of_parts
         for z in range(n_of_parts):
+            #reiniciar diccionario
+            self.bibkg_dictionary = {}
             if z == 2:
                 continue
             with open(self.input_url, encoding="utf8") as milldb_file:
@@ -244,18 +247,16 @@ class BibKGParser():
                         if count > (z + 1)*segment_size:
                             break
 
-        print("\nEscribiendo archivo {}".format(z + 1))
-        write_url = self.write_urls[z] + self.folder
+            print("\nEscribiendo archivo {}".format(z + 1))
+            write_url = self.folder + self.write_urls[z]
 
-        #Escribir lo procesado en el archivo
-        with open(write_url, "w") as f:
-            for _, valor in self.bibkg_dictionary.items():
-                json.dump(valor, f)
-                f.write('\n')
-            print("\nArchivo {} escrito".format(z + 1))
+            #Escribir lo procesado en el archivo
+            with open(write_url, "w") as f:
+                for _, valor in self.bibkg_dictionary.items():
+                    json.dump(valor, f)
+                    f.write('\n')
+                print("\nArchivo {} escrito".format(z + 1))
 
-        #Liberar diccionario
-        self.bibkg_dictionary = {}
 
 
 if __name__ == "__main__":
