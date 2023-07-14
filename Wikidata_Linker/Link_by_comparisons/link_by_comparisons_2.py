@@ -230,12 +230,14 @@ class LinkByComparisons():
                 self.count_links += 1
                 #self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_comparisons'])
                 self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id])
-                self.wikidata_linker.csv_data[bibkg_id].append('linked_by_id')
+                self.wikidata_linker.csv_data[bibkg_id].append('linked_by_comparisons')
         #Si una entidad es relacionada con otra entidad a la ya asociada, se elimina la asociación
         elif writed_links_dict[bibkg_id] != wikidata_id:
             if bibkg_id not in self.wikidata_linker.writed_id_entities:
                 forbidden_links_dict[bibkg_id] = True
                 del writed_links_dict[bibkg_id]
+        else:
+            self.wikidata_linker.csv_data[bibkg_id].append('linked_by_comparisons'.format(self.link_type))    
 
     #link_by_comparisons: realiza el método de enlaces por comparaciones, enlazando entidades de BibKG con Wikidata mediante coincidencias
     #en las propiedades de estas
