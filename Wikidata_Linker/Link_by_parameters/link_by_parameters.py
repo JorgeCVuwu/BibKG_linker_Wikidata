@@ -29,11 +29,32 @@ def process_author_id(id):
     if id[0:2] == "a_":
         return id[2:].replace("_", " ")
 
+#get_dblp_url: extrae el ID de BibKG de una entidad, a partir de la propiedad 'url' (de existir las condiciones adecuadas)
+def get_dblp_url(entity):
+    #print(url)
+    url = entity[':url'][0]['value']
+    split = url.split('/')
+    if split[0] != 'db':
+        return False
+    url1 = ''
+    n = len(split) - 1
+    for i in range(1, n):
+        url1 += split[i] + '/'
+    url_last = split[-1]
+    if '#' in url_last:
+        url_name =url_last.split('#')[1]
+    else:
+        url_name = url_last.replace(".html", "")
+    dblp_id = url1 + url_name
+    return dblp_id
+
 class LinkByParameters():
 
     def __init__(self, wikidata_linker):
 
         self.wikidata_linker = wikidata_linker
+
+        self.dblp_ids_dict = {}
 
         self.bibkg_publications_dict = {}
         self.wikidata_person_dict = {}
@@ -67,7 +88,10 @@ class LinkByParameters():
                 writed_links_dict[bibkg_id] = wikidata_id
                 self.count_links += 1
                 self.count_author_links += 1
-                self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id])
+                dblp_id = self.dblp_ids_dict.get(bibkg_id)
+                if not dblp_id:
+                    dblp_id = ''
+                self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
                 self.wikidata_linker.csv_data[bibkg_id].append('linked_by_{}_recursion_authors'.format(self.link_type))
                 #self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_{}_recursion_authors'.format(self.link_type)])
         #Si una entidad es relacionada con otra entidad a la ya asociada, se elimina la asociación
@@ -91,7 +115,10 @@ class LinkByParameters():
                 writed_links_dict[bibkg_id] = wikidata_id
                 self.count_links += 1
                 self.count_publication_links += 1
-                self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id])
+                dblp_id = self.dblp_ids_dict.get(bibkg_id)
+                if not dblp_id:
+                    dblp_id = ''
+                self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
                 self.wikidata_linker.csv_data[bibkg_id].append('linked_by_{}_recursion_publications'.format(self.link_type))
                 #self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_{}_recursion_publications'.format(self.link_type)])        
         elif writed_links_dict[bibkg_id] != wikidata_id:
@@ -113,7 +140,10 @@ class LinkByParameters():
             writed_links_dict[bibkg_id] = wikidata_id    
             self.count_links += 1
             self.count_journal_links += 1
-            self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id])
+            dblp_id = self.dblp_ids_dict.get(bibkg_id)
+            if not dblp_id:
+                dblp_id = ''
+            self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
             self.wikidata_linker.csv_data[bibkg_id].append('linked_by_{}_recursion_journals'.format(self.link_type))
             #self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_{}_recursion_journals'.format(self.link_type)])
         elif writed_links_dict[bibkg_id] != wikidata_id:
@@ -136,6 +166,14 @@ class LinkByParameters():
             for linea in bibkg:
                 entity = json.loads(linea)
                 id = entity['id']
+
+                if 'key' in entity:
+                    self.dblp_ids_dict[id] = entity['key']
+                elif 'url' in entity:
+                    dblp_id = get_dblp_url(entity)
+                    if dblp_id:
+                        self.dblp_ids_dict[id] = dblp_id
+
                 if 'type' in entity:
                     type = entity['type']
                 else:

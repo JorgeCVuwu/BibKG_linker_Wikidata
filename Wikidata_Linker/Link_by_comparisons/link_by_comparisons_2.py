@@ -40,11 +40,32 @@ def process_names(name):
 def process_author_id(id):
     if id[0:2] == "a_":
         return id[2:].replace("_", " ")
+    
+#get_dblp_url: extrae el ID de BibKG de una entidad, a partir de la propiedad 'url' (de existir las condiciones adecuadas)
+def get_dblp_url(entity):
+    #print(url)
+    url = entity[':url'][0]['value']
+    split = url.split('/')
+    if split[0] != 'db':
+        return False
+    url1 = ''
+    n = len(split) - 1
+    for i in range(1, n):
+        url1 += split[i] + '/'
+    url_last = split[-1]
+    if '#' in url_last:
+        url_name =url_last.split('#')[1]
+    else:
+        url_name = url_last.replace(".html", "")
+    dblp_id = url1 + url_name
+    return dblp_id
 
 class LinkByComparisons():
 
     def __init__(self, wikidata_linker):
         self.wikidata_linker = wikidata_linker
+
+        self.dblp_ids_dict = {}
         
         self.bibkg_person_dict = {}
         self.property_dict_name = {}
@@ -229,7 +250,10 @@ class LinkByComparisons():
                 writed_links_dict[bibkg_id] = wikidata_id
                 self.count_links += 1
                 #self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_comparisons'])
-                self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id])
+                dblp_id = self.dblp_ids_dict.get(bibkg_id)
+                if not dblp_id:
+                    dblp_id = ''
+                self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
                 self.wikidata_linker.csv_data[bibkg_id].append('linked_by_comparisons')
         #Si una entidad es relacionada con otra entidad a la ya asociada, se elimina la asociación
         elif writed_links_dict[bibkg_id] != wikidata_id:
@@ -237,7 +261,7 @@ class LinkByComparisons():
                 forbidden_links_dict[bibkg_id] = True
                 del writed_links_dict[bibkg_id]
         else:
-            self.wikidata_linker.csv_data[bibkg_id].append('linked_by_comparisons'.format(self.link_type))    
+            self.wikidata_linker.csv_data[bibkg_id].append('linked_by_comparisons')    
 
     #link_by_comparisons: realiza el método de enlaces por comparaciones, enlazando entidades de BibKG con Wikidata mediante coincidencias
     #en las propiedades de estas
@@ -252,6 +276,15 @@ class LinkByComparisons():
             for linea in bibkg:
                 entity = json.loads(linea)
                 id = entity['id']
+
+                if 'key' in entity:
+                    self.dblp_ids_dict[id] = entity['key']
+                elif 'url' in entity:
+                    dblp_id = get_dblp_url(entity)
+                    if dblp_id:
+                        self.dblp_ids_dict[id] = dblp_id
+
+
                 if 'type' in entity:
                     type = entity['type']
                     if type == "Person":

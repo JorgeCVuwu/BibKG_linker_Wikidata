@@ -36,12 +36,34 @@ def verify_substring(list, substring):
             element_list.append(element)
     return element_list
 
+#get_dblp_url: extrae el ID de BibKG de una entidad, a partir de la propiedad 'url' (de existir las condiciones adecuadas)
+def get_dblp_url(entity):
+    #print(url)
+    url = entity[':url'][0]['value']
+    split = url.split('/')
+    if split[0] != 'db':
+        return False
+    url1 = ''
+    n = len(split) - 1
+    for i in range(1, n):
+        url1 += split[i] + '/'
+    url_last = split[-1]
+    if '#' in url_last:
+        url_name =url_last.split('#')[1]
+    else:
+        url_name = url_last.replace(".html", "")
+    dblp_id = url1 + url_name
+    return dblp_id
+
 #class LinkByID(WikidataLinker):
 class LinkByID():
 
     def __init__(self, wikidata_linker):
 
         self.wikidata_linker = wikidata_linker
+
+        #Diccionario con los IDs de DBLP de cada entidad de BibKG (para ingresarlos a los CSV)
+        self.dblp_ids_dict = {}
 
         self.doi_dict = {}
         self.arxiv_dict = {}
@@ -143,23 +165,9 @@ class LinkByID():
         self.metadata_path = folder + 'count-id-links-test.csv'
         self.linked_id_csv_path = folder + 'id-links-corr.csv'
     #funciones process: ajustan el formato del string de la ID de BibKG de cada tipo para poder compararse con Wikidata
+
     def process_dblp_url(self, entity):
-        #print(url)
-        url = entity[':url'][0]['value']
-        split = url.split('/')
-        if split[0] != 'db':
-            return False
-        url1 = ''
-        n = len(split) - 1
-        for i in range(1, n):
-            url1 += split[i] + '/'
-        url_last = split[-1]
-        if '#' in url_last:
-            url_name =url_last.split('#')[1]
-        else:
-            url_name = url_last.replace(".html", "")
-        dblp_id = url1 + url_name
-        #dblp_dict[dblp_id] = id
+        dblp_id = get_dblp_url(entity)
         add_to_dict(self.dblp_dict, dblp_id, entity['id'])
 
     def process_doi(self, ee, id):
@@ -219,7 +227,10 @@ class LinkByID():
             property_name = self.wikidata_properties_dict[key]['name']
             writed_links_dict = self.wikidata_linker.writed_links_dict
             writed_links_dict[property_id] = id
-            self.wikidata_linker.csv_data.setdefault(property_id, [id])
+            dblp_id = self.dblp_ids_dict.get(property_id)
+            if not dblp_id:
+                dblp_id = ''
+            self.wikidata_linker.csv_data.setdefault(property_id, [id, dblp_id])
             self.wikidata_linker.csv_data[property_id].append('linked_by_id')
             #self.wikidata_linker.csv_data.append([property_id, id, 'linked_by_id'])
             # if property_id in self.linked_properties_dict: #
@@ -239,7 +250,7 @@ class LinkByID():
     def write_id_linked_entities(self):
         with open(self.linked_id_csv_path, mode='w', newline='') as archivo_csv:
             writer = csv.writer(archivo_csv)
-            csv_id_data = ['bibkg_id', 'wikidata_id']
+            csv_id_data = ['bibkg_id', 'wikidata_id', 'dblp_id']
             for key, property in self.wikidata_properties_dict.items():
                 csv_id_data.append(property['name'])
             writer.writerow(csv_id_data)
@@ -248,6 +259,12 @@ class LinkByID():
                 if key not in self.wikidata_linker.forbidden_links_dict:
                     self.wikidata_linker.writed_id_entities[key] = True
                     row = [key, value['wikidata-id']]
+
+                    dblp_id = self.dblp_ids_dict.get(key)
+                    if dblp_id:
+                        row.append(dblp_id)
+                    else:
+                        row.append('')
                     first_property_key = value['first-property-linker']
                     self.wikidata_properties_dict[first_property_key]['count-links'] += 1
                     for key, property in self.wikidata_properties_dict.items():
@@ -280,6 +297,15 @@ class LinkByID():
             for linea in bibkg:
                 entity = json.loads(linea)
                 id = entity['id']
+
+                if 'key' in entity:
+                    self.dblp_ids_dict[id] = entity['key']
+                elif 'url' in entity:
+                    dblp_id = get_dblp_url(entity)
+                    if dblp_id:
+                        self.dblp_ids_dict[id] = dblp_id
+
+
                 if 'ee' in entity:
                     ee = re.sub(r'^https?://', '', entity['ee'])
                     for key in self.url_functions_dict:
@@ -471,8 +497,9 @@ class LinkByID():
         fin = time.time()
 
         tiempo = fin - inicio
-        self.write_count_data_csv(tiempo)
+
         self.write_id_linked_entities()
+        self.write_count_data_csv(tiempo)
 
         print("IDs con _corr filtrados de enlazamiento: {}".format(self.count_filtered_corr))
         print("IDs de BibKG con entidades repetidas de Wikidata enlazados: {}".format(self.count_repeated_wikidata_entity))

@@ -22,6 +22,7 @@ class WikidataLinker:
         self.method_writed_links = -1
 
         self.total_links_writed = 0
+        self.count_forbidden = 0
 
         #Diccionarios que almacenan información referente a los enlaces
         self.writed_links_dict = {}
@@ -29,7 +30,7 @@ class WikidataLinker:
         self.writed_id_entities = {}
 
         self.csv_data_header = [
-            ['entity_id', 'wikidata_id', 'linked_by_id', 'linked_by_id_recursion_authors', 'linked_by_id_recursion_journals',
+            ['entity_id', 'wikidata_id', 'dblp_id' 'linked_by_id', 'linked_by_id_recursion_authors', 'linked_by_id_recursion_journals',
              'linked_by_id_recursion_publications', 'linked_by_comparisons', 'linked_by_comparisons_recursion_authors', 
              'linked_by_comparisons_recursion_journals', 'linked_by_comparisons_recursion_publications']
         ]
@@ -46,10 +47,11 @@ class WikidataLinker:
             writer.writerow(self.csv_data_header)
             for bibkg_id, link_data in self.csv_data.values():
                 wikidata_id = link_data[0]
-                fila = [bibkg_id, wikidata_id]
-                n = len(link_data)
-                for link_properties in self.csv_data_header:
-                    if link_data in link_properties:
+                dblp_id = link_data[1]
+
+                fila = [bibkg_id, wikidata_id, dblp_id] # añadir DBLP ID, de existir
+                for link_properties in self.csv_data_header[0]:
+                    if link_properties in link_data:
                         fila.append('1')
                     else:
                         fila.append('')
@@ -57,6 +59,8 @@ class WikidataLinker:
                 if bibkg_id not in self.forbidden_links_dict:
                     writer.writerow(fila)
                     self.total_links_writed += 1
+                else:
+                    self.count_forbidden += 1
                     #se cuentan los tipos de enlaces en un diccionario según el tipo de enlace
                                   
 
@@ -154,6 +158,8 @@ if __name__ == "__main__":
     wikidata_linker.write_metadata_csv()
 
     print("Enlaces totales: {}".format(wikidata_linker.total_links_writed))
+
+    print("Enlaces prohibidos: {}".format(wikidata_linker.count_forbidden))
 
     print("Tiempo de ejecución: {}".format(fin - inicio))
 
