@@ -36,7 +36,7 @@ class BibKGParser():
 
     #write_new_part: Escribe las entidades y propiedades no repetidas en el archivo JSON nuevo
     def write_new_part(self, bibkg, part_path):
-        part_path = self.folder + part_path
+        part_path = part_path
         with open(part_path, 'r') as p:
             for linea in p:
                 entity = json.loads(linea)
@@ -68,10 +68,13 @@ class BibKGParser():
     #Está pensada para crear partes en potencias de 2 (1, 2, 4, 8...)
     def merge_bibkg_parts(self):
         n = len(self.write_urls)
-        count = 0
+        count = 1
         self.entity_dict = {}
         self.repeated_dict = {}
         self.repeated_objects = {}
+
+        for i in range(self.write_urls):
+            self.write_urls[i] = self.folder + self.write_urls[i]
         #self.repeated_counts = {}
 
         new_parts_path_list = []
@@ -93,9 +96,12 @@ class BibKGParser():
                         #c_repeated += 1
 
                 if len(self.write_urls) == 2:
-                    new_bibkg_path = 'bibkg.json'
+                    new_bibkg_path = self.folder + self.bibkg_path
+                    print("Escribiendo archivo JSON final")
                 else:
-                    new_bibkg_path = 'bibkg_' + str(count) + '.json'
+                    new_bibkg_path = self.folder + 'bibkg_' + str(count) + '.json'
+                    print("Escribiendo archivo N°{}".format(count))
+                    count += 1
 
                 with open(new_bibkg_path, 'w') as bibkg:
                     self.write_new_part(bibkg, bibkg_path_1)
@@ -123,8 +129,8 @@ class BibKGParser():
         for z in range(n_of_parts):
             #reiniciar diccionario
             self.bibkg_dictionary = {}
-            if z == 2:
-                continue
+            # if z == 2 or z == 3:
+            #     continue
             with open(self.input_url, encoding="utf8") as milldb_file:
                 count = 1
 

@@ -279,7 +279,7 @@ class LinkByComparisons():
 
                 if 'key' in entity:
                     self.dblp_ids_dict[id] = entity['key']
-                elif 'url' in entity:
+                elif ':url' in entity:
                     dblp_id = get_dblp_url(entity)
                     if dblp_id:
                         self.dblp_ids_dict[id] = dblp_id

@@ -55,14 +55,6 @@ count_article_error = 0
 if 'Q33313196' in wikidata_repet_id_dict:
     print(wikidata_repet_id_dict['Q33313196'])
 
-# i = 0
-
-# for key, value in bibkg_repeats_in_wikidata.items():
-#     print(key)
-#     print(value)
-#     i += 1
-#     if i > 100:
-#         break
 
 count_isbn = 0
 count_properties_dict = {}
@@ -75,9 +67,6 @@ with open(archivo_json, 'r') as archivo:
     for linea in archivo:
         entity = json.loads(linea)
         id = entity['id']
-        # if id == 'r_cn_Kilpatrick14':
-        #     print(entity)
-        #     break
         if '_corr_' in id:
             count_total_corr += 1 
         if id in wikidata_repet_id_dict:

@@ -10,7 +10,9 @@ def contar_valores_csv(nombre_archivo):
     return conteo_valores
 
 # Nombre del archivo CSV
-archivo_csv = 'data/wikidata_linker/id-links-corr.csv'
+archivo_csv = 'data/wikidata_linker/linked-entities.csv'
+#archivo_csv = 'data/wikidata_linker/id-links-corr.csv'
+
 
 # Obtener el conteo de valores en cada columna
 conteo = contar_valores_csv(archivo_csv)

@@ -14,9 +14,9 @@ class WikidataLinker:
         self.bibkg_path = bibkg_path
         self.wikidata_person_path = wikidata_person_path
         self.wikidata_scholar_path = wikidata_scholar_path
-        self.link_csv_path = "data/wikidata_linker/linked_entities.csv"
-        self.link_id_csv_path = "data/wikidata_linker/linked_id_entities.csv"
-        self.metadata_path = "data/wikidata_linker/metadata.csv"
+        self.link_csv_path = "data/wikidata_linker/linked-entities-2.csv"
+        self.link_id_csv_path = "data/wikidata_linker/linked-id-entities-2.csv"
+        self.metadata_path = "data/wikidata_linker/metadata-2.csv"
 
         #contadores
         self.method_writed_links = -1
@@ -30,7 +30,7 @@ class WikidataLinker:
         self.writed_id_entities = {}
 
         self.csv_data_header = [
-            ['entity_id', 'wikidata_id', 'dblp_id' 'linked_by_id', 'linked_by_id_recursion_authors', 'linked_by_id_recursion_journals',
+            ['entity_id', 'wikidata_id', 'dblp_id', 'linked_by_id', 'linked_by_id_recursion_authors', 'linked_by_id_recursion_journals',
              'linked_by_id_recursion_publications', 'linked_by_comparisons', 'linked_by_comparisons_recursion_authors', 
              'linked_by_comparisons_recursion_journals', 'linked_by_comparisons_recursion_publications']
         ]
@@ -44,25 +44,30 @@ class WikidataLinker:
         with open(self.link_csv_path, mode='w', newline='') as archivo_csv:
             self.count_link_types = {}
             writer = csv.writer(archivo_csv)
-            writer.writerow(self.csv_data_header)
-            for bibkg_id, link_data in self.csv_data.values():
-                wikidata_id = link_data[0]
-                dblp_id = link_data[1]
+            writer.writerow(self.csv_data_header[0])
+            try:
+                for bibkg_id, link_data in self.csv_data.items():
+                    wikidata_id = link_data[0]
+                    dblp_id = link_data[1]
 
-                fila = [bibkg_id, wikidata_id, dblp_id] # añadir DBLP ID, de existir
-                for link_properties in self.csv_data_header[0]:
-                    if link_properties in link_data:
-                        fila.append('1')
+                    fila = [bibkg_id, wikidata_id, dblp_id] # añadir DBLP ID, de existir
+                    for link_properties in self.csv_data_header[0][3:]:
+                        if link_properties in link_data:
+                            fila.append('1')
+                        else:
+                            fila.append('')
+
+                    if bibkg_id not in self.forbidden_links_dict:
+                        writer.writerow(fila)
+                        self.total_links_writed += 1
                     else:
-                        fila.append('')
-
-                if bibkg_id not in self.forbidden_links_dict:
-                    writer.writerow(fila)
-                    self.total_links_writed += 1
-                else:
-                    self.count_forbidden += 1
-                    #se cuentan los tipos de enlaces en un diccionario según el tipo de enlace
-                                  
+                        self.count_forbidden += 1
+                        #se cuentan los tipos de enlaces en un diccionario según el tipo de enlace
+            except ValueError as e:
+                print(e)
+                print(bibkg_id)
+                print(link_data)
+                                                    
 
         #write_metadata_csv: guarda los metadatos del proceso (datos principales relacionados a la ejecución del proceso y conteos de enlazamientos)
     def write_metadata_csv(self):
@@ -70,7 +75,7 @@ class WikidataLinker:
             writer = csv.writer(archivo_csv)           
             data = [
                 ['time_hours', 'writed_linked_entities'],
-                [self.time, self.total_links_writed]
+                [self.time/3600, self.total_links_writed]
             ]
             for fila in data:
                 writer.writerow(fila)
@@ -163,8 +168,4 @@ if __name__ == "__main__":
 
     print("Tiempo de ejecución: {}".format(fin - inicio))
 
-    # wikidata_linker.link_by_comparisons()
-
-    # while wikidata_linker.method_writed_links != 0:
-    #     wikidata_linker.link_by_parameters()
     
