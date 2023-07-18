@@ -166,8 +166,8 @@ class LinkByID():
         #                                 google_scholar_property:{'name':'Google Scholar ID', 'dict':self.scholar_dict, 'count-links':0, 'count-total':0}}
 
         folder = 'data/wikidata_linker/'
-        self.metadata_path = folder + 'count-id-links-test-2.csv'
-        self.linked_id_csv_path = folder + 'id-links-corr-2.csv'
+        self.metadata_path = folder + 'count-id-links-test-3.csv'
+        self.linked_id_csv_path = folder + 'id-links-3.csv'
     #funciones process: ajustan el formato del string de la ID de BibKG de cada tipo para poder compararse con Wikidata
 
     def process_dblp_url(self, entity):
@@ -230,33 +230,36 @@ class LinkByID():
     def link_entities(self, bibkg_id, wikidata_id, key, valor_at):
             property_name = self.wikidata_properties_dict[key]['name']
             writed_links_dict = self.wikidata_linker.writed_links_dict
-            writed_links_dict[bibkg_id] = wikidata_id
-            dblp_id = self.dblp_ids_dict.get(bibkg_id)
-            if not dblp_id:
-                dblp_id = ''
-            self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id]) #insertar tema wikidata repetido en caso de
-            self.wikidata_linker.csv_data[bibkg_id].append('linked_by_id')
+
             #self.wikidata_linker.csv_data.append([property_id, id, 'linked_by_id'])
-            repeated_wikidata_entity = False
-            if bibkg_id in self.linked_properties_dict: #
-                repeated_wikidata_entity = True
-                repeated_id = 'wid#' + wikidata_id
-                self.wikidata_linker.csv_data[bibkg_id].append(repeated_id)
-                i = 2
-                while True:
-                    repeated_property_id = bibkg_id + '###' + str(i)
-                    if repeated_property_id not in self.linked_properties_dict:
-                        bibkg_id = repeated_property_id
-                        break
-                    i += 1 #
-            self.linked_properties_dict.setdefault(bibkg_id, {'wikidata-id':wikidata_id, 'first-property-linker':key})
+            # repeated_wikidata_entity = False
+            # if bibkg_id in self.linked_properties_dict: #
+            #     repeated_wikidata_entity = True
+                # repeated_id = 'wid#' + wikidata_id
+                # self.wikidata_linker.csv_data[bibkg_id].append(repeated_id)
+                # i = 2
+                # while True:
+                #     repeated_property_id = bibkg_id + '###' + str(i)
+                #     if repeated_property_id not in self.linked_properties_dict:
+                #         bibkg_id = repeated_property_id
+                #         break
+                #     i += 1 #
             #Si el ID de BibKG posee al menos enlaces con 2 entidades distintas de Wikidata, se agrega una nueva estructura para el CSV
-            if repeated_wikidata_entity:
+            if bibkg_id in self.linked_properties_dict:
                 self.linked_properties_dict[bibkg_id].setdefault('repeated-wikidata-ids', {})
                 self.linked_properties_dict[bibkg_id]['repeated-wikidata-ids'].setdefault(wikidata_id, {'first-property-linker':key})
                 self.linked_properties_dict[bibkg_id]['repeated-wikidata-ids'][wikidata_id][property_name] = valor_at
+                repeated_id = 'wid###' + wikidata_id
+                self.wikidata_linker.csv_data[bibkg_id].append(repeated_id)
             else:
+                self.linked_properties_dict.setdefault(bibkg_id, {'wikidata-id':wikidata_id, 'first-property-linker':key})
                 self.linked_properties_dict[bibkg_id][property_name] = valor_at
+                writed_links_dict[bibkg_id] = wikidata_id
+                dblp_id = self.dblp_ids_dict.get(bibkg_id)
+                if not dblp_id:
+                    dblp_id = ''
+                self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id]) #insertar tema wikidata repetido en caso de
+                self.wikidata_linker.csv_data[bibkg_id].append('linked_by_id')
             if property_name == 'ISBN-10' or property_name == 'ISBN-13':
                 self.isbn_links_dict[wikidata_id] = bibkg_id
 
@@ -264,7 +267,7 @@ class LinkByID():
     def write_id_linked_entities(self):
         with open(self.linked_id_csv_path, mode='w', newline='') as archivo_csv:
             writer = csv.writer(archivo_csv)
-            csv_id_data = ['bibkg_id', 'wikidata_id', 'repeated_wikidata_links', 'dblp_id']
+            csv_id_data = ['bibkg_id', 'wikidata_id', 'other_wikidata_ids', 'dblp_id']
             for key, property in self.wikidata_properties_dict.items():
                 csv_id_data.append(property['name'])
             writer.writerow(csv_id_data)
@@ -389,10 +392,7 @@ class LinkByID():
         
         with open(self.wikidata_linker.wikidata_scholar_path, 'r') as wikidata_scholar:
             for linea in wikidata_scholar:
-                try:
-                    entity = json.loads(linea)
-                except:
-                    print(linea)
+                entity = json.loads(linea)
                 id = entity['id']
                 claims = entity['claims'].items()
                 for key, value in claims:
@@ -444,10 +444,10 @@ class LinkByID():
                                             self.count_duplicate_wikidata_links_id_linker_1 += 1
                                             self.link_entities(property_id, id, key, valor_at)
 
-                                            if self.count_duplicate_wikidata_links_id_linker < 10:
-                                                print(id)
-                                                print(property_id)
-                                                print(self.wikidata_linker.writed_links_dict[property_id])
+                                            # if self.count_duplicate_wikidata_links_id_linker < 10:
+                                            #     print(id)
+                                            #     print(property_id)
+                                            #     print(self.wikidata_linker.writed_links_dict[property_id])
 
                                         if id in self.wikidata_in_file and self.wikidata_in_file[id] != property_id:
                                         #elif self.wikidata_in_file.get(id) != property_id:

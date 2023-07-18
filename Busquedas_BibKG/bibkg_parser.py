@@ -73,7 +73,7 @@ class BibKGParser():
         self.repeated_dict = {}
         self.repeated_objects = {}
 
-        for i in range(self.write_urls):
+        for i in range(n):
             self.write_urls[i] = self.folder + self.write_urls[i]
         #self.repeated_counts = {}
 
@@ -81,7 +81,7 @@ class BibKGParser():
 
         while len(self.write_urls) != 1:
 
-            for i in range(0, n, 2):
+            for i in range(0, n-1, 2):
                 bibkg_path_1, bibkg_path_2 = self.write_urls[i], self.write_urls[i + 1]
                 
                 
@@ -98,6 +98,7 @@ class BibKGParser():
                 if len(self.write_urls) == 2:
                     new_bibkg_path = self.folder + self.bibkg_path
                     print("Escribiendo archivo JSON final")
+                    new_parts_path_list = []
                 else:
                     new_bibkg_path = self.folder + 'bibkg_' + str(count) + '.json'
                     print("Escribiendo archivo N°{}".format(count))
@@ -271,7 +272,9 @@ if __name__ == "__main__":
     parts_list = ["bibkg_part1.json", "bibkg_part2.json", "bibkg_part3.json", "bibkg_part4.json"]
     bibkg_parser = BibKGParser(parts_list)
 
-    bibkg_parser.parse_bibkg()
+    #bibkg_parser.parse_bibkg()
     bibkg_parser.merge_bibkg_parts()
 
     fin = time.time()
+
+    print("Tiempo de ejecución: {} segundos".format(fin - inicio))

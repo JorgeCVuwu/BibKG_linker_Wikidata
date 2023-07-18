@@ -12,10 +12,11 @@ archivo2 = folder + '\wikidata_else_4.json'
 with open(archivo1, 'r') as file1, open(archivo_fusionado, 'w') as output_file:
     for line in file1:
         output_file.write(line)
-        output_file.write('\n')
+        #output_file.write('\n')
+    output_file.write('\n')
 
 # Leer el contenido del archivo 2 y escribirlo en el archivo fusionado (agregando al final)
 with open(archivo2, 'r') as file2, open(archivo_fusionado, 'a') as output_file:
     for line in file2:
         output_file.write(line)
-        output_file.write('\n')
+        #output_file.write('\n')

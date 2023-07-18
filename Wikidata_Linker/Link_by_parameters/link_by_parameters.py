@@ -409,7 +409,7 @@ class LinkByParameters():
         print(self.count_order_name_author_links)
         print(self.count_order_author_links)
         print(self.count_not_order_author_links)            
-        return self.count_links
+        return self.count_links, self.count_author_links, self.count_publication_links, self.count_journal_links
 
 
 

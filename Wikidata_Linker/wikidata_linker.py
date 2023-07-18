@@ -6,6 +6,10 @@ from Link_by_parameters import link_by_parameters
 from Link_by_comparisons import link_by_comparisons_2
 # from Link_by_comparisons import link_by_comparisons
 
+def get_strings_with_prefix(lista, prefix):
+    prefix_values = [value.replace(prefix, '') for value in lista if value.startswith(prefix)]
+    return prefix_values
+
 #WikidataLinker: clase encargada de enlazar el JSON de BibKG con el archivo preprocesado de Wikidata
 class WikidataLinker:
 
@@ -14,12 +18,11 @@ class WikidataLinker:
         self.bibkg_path = bibkg_path
         self.wikidata_person_path = wikidata_person_path
         self.wikidata_scholar_path = wikidata_scholar_path
-        self.link_csv_path = "data/wikidata_linker/linked-entities-2.csv"
-        self.link_id_csv_path = "data/wikidata_linker/linked-id-entities-2.csv"
-        self.metadata_path = "data/wikidata_linker/metadata-2.csv"
+        self.link_csv_path = "data/wikidata_linker/linked-entities-3.csv"
+        self.link_id_csv_path = "data/wikidata_linker/linked-id-entities-3.csv"
+        self.metadata_path = "data/wikidata_linker/metadata-3.csv"
 
         #contadores
-        self.method_writed_links = -1
 
         self.total_links_writed = 0
         self.count_forbidden = 0
@@ -30,9 +33,10 @@ class WikidataLinker:
         self.writed_id_entities = {}
 
         self.csv_data_header = [
-            ['entity_id', 'wikidata_id', 'dblp_id', 'linked_by_id', 'linked_by_id_recursion_authors', 'linked_by_id_recursion_journals',
-             'linked_by_id_recursion_publications', 'linked_by_comparisons', 'linked_by_comparisons_recursion_authors', 
-             'linked_by_comparisons_recursion_journals', 'linked_by_comparisons_recursion_publications']
+            'bibkg_id', 'wikidata_id', 'other_wikidata_ids', 'dblp_id', 'linked_by_id', 'linked_by_id_recursion_authors', 
+            'linked_by_id_recursion_journals', 'linked_by_id_recursion_publications', 'linked_by_comparisons', 
+            'linked_by_comparisons_recursion_authors',  'linked_by_comparisons_recursion_journals', 
+            'linked_by_comparisons_recursion_publications'
         ]
 
         self.csv_data = {}
@@ -44,14 +48,19 @@ class WikidataLinker:
         with open(self.link_csv_path, mode='w', newline='') as archivo_csv:
             self.count_link_types = {}
             writer = csv.writer(archivo_csv)
-            writer.writerow(self.csv_data_header[0])
+            writer.writerow(self.csv_data_header)
             try:
                 for bibkg_id, link_data in self.csv_data.items():
                     wikidata_id = link_data[0]
                     dblp_id = link_data[1]
-
-                    fila = [bibkg_id, wikidata_id, dblp_id] # añadir DBLP ID, de existir
-                    for link_properties in self.csv_data_header[0][3:]:
+                    repeated_wikidata_ids = get_strings_with_prefix(link_data, 'wid###')
+                    repeated_wikidata_ids_string = ''
+                    for repeated_id in repeated_wikidata_ids:
+                        if repeated_wikidata_ids_string:
+                            repeated_wikidata_ids_string += '###'
+                        repeated_wikidata_ids_string += repeated_id
+                    fila = [bibkg_id, wikidata_id,repeated_wikidata_ids_string, dblp_id] # añadir DBLP ID, de existir
+                    for link_properties in self.csv_data_header[4:]:
                         if link_properties in link_data:
                             fila.append('1')
                         else:
@@ -137,22 +146,18 @@ if __name__ == "__main__":
     wikidata_linker.link_by_id()
     print(len(wikidata_linker.writed_links_dict))
 
-    count_links = 1
-
-    while count_links != 0:
-        count_links = wikidata_linker.link_by_parameters('id')
-        print(count_links)
-
-    count_links = 1
+    while True:
+        count_links, count_articles, count_publications, count_journals = wikidata_linker.link_by_parameters('id')
+        if count_articles == 0 or count_publications == 0:
+            break
 
     count_links = wikidata_linker.link_by_comparisons()
     print(count_links)
     
-    count_links = 1
-
-    while count_links != 0:
-        count_links = wikidata_linker.link_by_parameters('comparisons')
-        print(count_links)
+    while True:
+        count_links, count_articles, count_publications, count_journals = wikidata_linker.link_by_parameters('comparisons')
+        if count_articles == 0 or count_publications == 0:
+            break
 
     fin = time.time()
 
