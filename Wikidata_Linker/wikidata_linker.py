@@ -8,7 +8,7 @@ from Link_by_comparisons import link_by_comparisons_2
 
 def get_strings_with_prefix(lista, prefix):
     prefix_values = [value.replace(prefix, '') for value in lista if value.startswith(prefix)]
-    return prefix_values
+    return set(prefix_values)
 
 #WikidataLinker: clase encargada de enlazar el JSON de BibKG con el archivo preprocesado de Wikidata
 class WikidataLinker:
@@ -18,9 +18,9 @@ class WikidataLinker:
         self.bibkg_path = bibkg_path
         self.wikidata_person_path = wikidata_person_path
         self.wikidata_scholar_path = wikidata_scholar_path
-        self.link_csv_path = "data/wikidata_linker/linked-entities-3.csv"
-        self.link_id_csv_path = "data/wikidata_linker/linked-id-entities-3.csv"
-        self.metadata_path = "data/wikidata_linker/metadata-3.csv"
+        self.link_csv_path = "data/wikidata_linker/linked-entities-4.csv"
+        self.link_id_csv_path = "data/wikidata_linker/linked-id-entities-4.csv"
+        self.metadata_path = "data/wikidata_linker/metadata-4.csv"
 
         #contadores
 
@@ -31,6 +31,7 @@ class WikidataLinker:
         self.writed_links_dict = {}
         self.forbidden_links_dict = {}
         self.writed_id_entities = {}
+        self.writed_wikidata_id_entities = {}
 
         self.csv_data_header = [
             'bibkg_id', 'wikidata_id', 'other_wikidata_ids', 'dblp_id', 'linked_by_id', 'linked_by_id_recursion_authors', 
@@ -147,16 +148,16 @@ if __name__ == "__main__":
     print(len(wikidata_linker.writed_links_dict))
 
     while True:
-        count_links, count_articles, count_publications, count_journals = wikidata_linker.link_by_parameters('id')
-        if count_articles == 0 or count_publications == 0:
+        count_links, count_authors, count_publications, count_journals = wikidata_linker.link_by_parameters('id')
+        if count_publications == 0:
             break
 
     count_links = wikidata_linker.link_by_comparisons()
     print(count_links)
     
     while True:
-        count_links, count_articles, count_publications, count_journals = wikidata_linker.link_by_parameters('comparisons')
-        if count_articles == 0 or count_publications == 0:
+        count_links, count_authors, count_publications, count_journals = wikidata_linker.link_by_parameters('comparisons')
+        if count_publications == 0:
             break
 
     fin = time.time()

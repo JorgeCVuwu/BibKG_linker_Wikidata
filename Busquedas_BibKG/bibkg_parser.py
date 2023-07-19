@@ -67,6 +67,7 @@ class BibKGParser():
     #merge_bibkg_parts: junta todas las partes de JSON de BibKG a un único archivo JSON
     #Está pensada para crear partes en potencias de 2 (1, 2, 4, 8...)
     def merge_bibkg_parts(self):
+        print("Comenzando el proceso de unión de partes de BibKG")
         n = len(self.write_urls)
         count = 1
         self.entity_dict = {}

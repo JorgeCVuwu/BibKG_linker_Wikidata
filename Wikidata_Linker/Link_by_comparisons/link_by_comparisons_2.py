@@ -247,14 +247,16 @@ class LinkByComparisons():
         forbidden_links_dict = self.wikidata_linker.forbidden_links_dict
         if bibkg_id not in writed_links_dict:
             if bibkg_id not in forbidden_links_dict:
-                writed_links_dict[bibkg_id] = wikidata_id
-                self.count_links += 1
                 #self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_comparisons'])
                 dblp_id = self.dblp_ids_dict.get(bibkg_id)
                 if not dblp_id:
                     dblp_id = ''
-                self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
-                self.wikidata_linker.csv_data[bibkg_id].append('linked_by_comparisons')
+                bibkg_id_link = self.wikidata_linker.writed_wikidata_id_entities.get(wikidata_id)
+                if ((bibkg_id_link and bibkg_id_link == bibkg_id) or not bibkg_id_link):
+                    writed_links_dict[bibkg_id] = wikidata_id
+                    self.count_links += 1
+                    self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
+                    self.wikidata_linker.csv_data[bibkg_id].append('linked_by_comparisons')
         #Si una entidad es relacionada con otra entidad a la ya asociada, se elimina la asociación
         elif writed_links_dict[bibkg_id] != wikidata_id:
             if bibkg_id not in self.wikidata_linker.writed_id_entities:

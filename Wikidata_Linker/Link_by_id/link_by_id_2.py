@@ -166,8 +166,8 @@ class LinkByID():
         #                                 google_scholar_property:{'name':'Google Scholar ID', 'dict':self.scholar_dict, 'count-links':0, 'count-total':0}}
 
         folder = 'data/wikidata_linker/'
-        self.metadata_path = folder + 'count-id-links-test-3.csv'
-        self.linked_id_csv_path = folder + 'id-links-3.csv'
+        self.metadata_path = folder + 'count-id-links-test-4.csv'
+        self.linked_id_csv_path = folder + 'id-links-4.csv'
     #funciones process: ajustan el formato del string de la ID de BibKG de cada tipo para poder compararse con Wikidata
 
     def process_dblp_url(self, entity):
@@ -231,19 +231,6 @@ class LinkByID():
             property_name = self.wikidata_properties_dict[key]['name']
             writed_links_dict = self.wikidata_linker.writed_links_dict
 
-            #self.wikidata_linker.csv_data.append([property_id, id, 'linked_by_id'])
-            # repeated_wikidata_entity = False
-            # if bibkg_id in self.linked_properties_dict: #
-            #     repeated_wikidata_entity = True
-                # repeated_id = 'wid#' + wikidata_id
-                # self.wikidata_linker.csv_data[bibkg_id].append(repeated_id)
-                # i = 2
-                # while True:
-                #     repeated_property_id = bibkg_id + '###' + str(i)
-                #     if repeated_property_id not in self.linked_properties_dict:
-                #         bibkg_id = repeated_property_id
-                #         break
-                #     i += 1 #
             #Si el ID de BibKG posee al menos enlaces con 2 entidades distintas de Wikidata, se agrega una nueva estructura para el CSV
             if bibkg_id in self.linked_properties_dict:
                 self.linked_properties_dict[bibkg_id].setdefault('repeated-wikidata-ids', {})
@@ -268,42 +255,44 @@ class LinkByID():
         with open(self.linked_id_csv_path, mode='w', newline='') as archivo_csv:
             writer = csv.writer(archivo_csv)
             csv_id_data = ['bibkg_id', 'wikidata_id', 'other_wikidata_ids', 'dblp_id']
-            for key, property in self.wikidata_properties_dict.items():
+            for _, property in self.wikidata_properties_dict.items():
                 csv_id_data.append(property['name'])
             writer.writerow(csv_id_data)
-            for key, value in self.linked_properties_dict.items():
+            for bibkg_id, value in self.linked_properties_dict.items():
                 #En este caso, si el ID no se encuentra "prohibido", se almacena como enlace
-                if key not in self.wikidata_linker.forbidden_links_dict:
-                    self.wikidata_linker.writed_id_entities[key] = True
-                    row = [key, value['wikidata-id']]
+                if bibkg_id not in self.wikidata_linker.forbidden_links_dict:
+                    self.wikidata_linker.writed_id_entities[bibkg_id] = True
+                    self.wikidata_linker.writed_wikidata_id_entities[value['wikidata-id']] = bibkg_id
+                    wikidata_id = value['wikidata-id']
+                    row = [bibkg_id, wikidata_id]
                     total_repeated_rows = []
-                    dblp_id = self.dblp_ids_dict.get(key)
-
+                    dblp_id = self.dblp_ids_dict.get(bibkg_id)
+                    #Si se encuentra más de 1 ID de Wikidata enlazado al de BibKG, se escribe 1 fila por cada enlace distinto de Wikidata
+                    #Se añaden todos los IDs de Wikidata enlazados a la columna 3
                     if 'repeated-wikidata-ids' in value:
                         total_repeated = ''
-                        total_repeated_ids_list = list(value['repeated-wikidata-ids'].keys())
-                        for r_id in total_repeated_ids_list:
+                        total_repeated_ids_list = set(value['repeated-wikidata-ids'].keys())
+                        for w_id in total_repeated_ids_list:
                             if total_repeated:
                                 total_repeated += '###'
-                            total_repeated += r_id
+                            total_repeated += w_id
                         row.append(total_repeated)
 
-                        total_repeated_ids_list.append(key)
                         for repeated_id, repeated_values in value['repeated-wikidata-ids'].items():
-                            repeated_string = key
+                            repeated_string = wikidata_id
 
                             for r_id in total_repeated_ids_list:
-                                if r_id != repeated_id:
+                                if r_id != repeated_id and r_id != wikidata_id:
                                     repeated_string += '###' + r_id
                                                               
-                            repeated_row = [key, repeated_id, repeated_string]
+                            repeated_row = [bibkg_id, repeated_id, repeated_string]
 
                             if dblp_id:
                                 repeated_row.append(dblp_id)
                             else:
                                 repeated_row.append('')
 
-                            for key, property in self.wikidata_properties_dict.items():
+                            for _, property in self.wikidata_properties_dict.items():
                                 if property['name'] in repeated_values:
                                     repeated_row.append(repeated_values[property['name']])
                                     property['count-total'] += 1
@@ -323,7 +312,7 @@ class LinkByID():
 
                     first_property_key = value['first-property-linker']
                     self.wikidata_properties_dict[first_property_key]['count-links'] += 1
-                    for key, property in self.wikidata_properties_dict.items():
+                    for bibkg_id, property in self.wikidata_properties_dict.items():
                         if property['name'] in value:
                             row.append(value[property['name']])
                             property['count-total'] += 1

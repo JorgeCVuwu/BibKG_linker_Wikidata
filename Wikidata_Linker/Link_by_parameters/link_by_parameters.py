@@ -91,14 +91,16 @@ class LinkByParameters():
         forbidden_links_dict = self.wikidata_linker.forbidden_links_dict
         if bibkg_id not in writed_links_dict: 
             if bibkg_id not in forbidden_links_dict:
-                writed_links_dict[bibkg_id] = wikidata_id
-                self.count_links += 1
-                self.count_author_links += 1
-                dblp_id = self.dblp_ids_dict.get(bibkg_id)
-                if not dblp_id:
-                    dblp_id = ''
-                self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
-                self.wikidata_linker.csv_data[bibkg_id].append('linked_by_{}_recursion_authors'.format(self.link_type))
+                bibkg_id_link = self.wikidata_linker.writed_wikidata_id_entities.get(wikidata_id)
+                if ((bibkg_id_link and bibkg_id_link == bibkg_id) or not bibkg_id_link):
+                    writed_links_dict[bibkg_id] = wikidata_id
+                    self.count_links += 1
+                    self.count_author_links += 1
+                    dblp_id = self.dblp_ids_dict.get(bibkg_id)
+                    if not dblp_id:
+                        dblp_id = ''
+                    self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
+                    self.wikidata_linker.csv_data[bibkg_id].append('linked_by_{}_recursion_authors'.format(self.link_type))
                 #self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_{}_recursion_authors'.format(self.link_type)])
         #Si una entidad es relacionada con otra entidad a la ya asociada, se elimina la asociación
         elif writed_links_dict[bibkg_id] != wikidata_id:
@@ -118,14 +120,16 @@ class LinkByParameters():
         forbidden_links_dict = self.wikidata_linker.forbidden_links_dict
         if bibkg_id not in writed_links_dict:
             if bibkg_id not in forbidden_links_dict:
-                writed_links_dict[bibkg_id] = wikidata_id
-                self.count_links += 1
-                self.count_publication_links += 1
-                dblp_id = self.dblp_ids_dict.get(bibkg_id)
-                if not dblp_id:
-                    dblp_id = ''
-                self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
-                self.wikidata_linker.csv_data[bibkg_id].append('linked_by_{}_recursion_publications'.format(self.link_type))
+                bibkg_id_link = self.wikidata_linker.writed_wikidata_id_entities.get(wikidata_id)
+                if ((bibkg_id_link and bibkg_id_link == bibkg_id) or not bibkg_id_link):
+                    writed_links_dict[bibkg_id] = wikidata_id
+                    self.count_links += 1
+                    self.count_publication_links += 1
+                    dblp_id = self.dblp_ids_dict.get(bibkg_id)
+                    if not dblp_id:
+                        dblp_id = ''
+                    self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
+                    self.wikidata_linker.csv_data[bibkg_id].append('linked_by_{}_recursion_publications'.format(self.link_type))
                 #self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_{}_recursion_publications'.format(self.link_type)])        
         elif writed_links_dict[bibkg_id] != wikidata_id:
             # print("a: {}".format(bibkg_id))
@@ -143,15 +147,17 @@ class LinkByParameters():
         writed_links_dict = self.wikidata_linker.writed_links_dict
         forbidden_links_dict = self.wikidata_linker.forbidden_links_dict
         if bibkg_id not in writed_links_dict:
-            writed_links_dict[bibkg_id] = wikidata_id    
-            self.count_links += 1
-            self.count_journal_links += 1
-            dblp_id = self.dblp_ids_dict.get(bibkg_id)
-            if not dblp_id:
-                dblp_id = ''
-            self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
-            self.wikidata_linker.csv_data[bibkg_id].append('linked_by_{}_recursion_journals'.format(self.link_type))
-            #self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_{}_recursion_journals'.format(self.link_type)])
+            bibkg_id_link = self.wikidata_linker.writed_wikidata_id_entities.get(wikidata_id)
+            if ((bibkg_id_link and bibkg_id_link == bibkg_id) or not bibkg_id_link):            
+                writed_links_dict[bibkg_id] = wikidata_id    
+                self.count_links += 1
+                self.count_journal_links += 1
+                dblp_id = self.dblp_ids_dict.get(bibkg_id)
+                if not dblp_id:
+                    dblp_id = ''
+                self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
+                self.wikidata_linker.csv_data[bibkg_id].append('linked_by_{}_recursion_journals'.format(self.link_type))
+                #self.wikidata_linker.csv_data.append([bibkg_id, wikidata_id, 'linked_by_{}_recursion_journals'.format(self.link_type)])
         elif writed_links_dict[bibkg_id] != wikidata_id:
             if bibkg_id not in self.wikidata_linker.writed_id_entities:
                 forbidden_links_dict[bibkg_id] = True
@@ -307,11 +313,11 @@ class LinkByParameters():
                                     if bibkg_order_data:
                                         id_bibkg_order, name_order = bibkg_order_data
                                         bibkg_id_by_name_order = author_names_list_bibkg.get(name_order)
-                                        if bibkg_id_by_name_order and bibkg_id_by_name_order == id_bibkg_order:
+                                        if bibkg_id_by_name_order and bibkg_id_by_name_order == id_bibkg_order and author_names_list_bibkg.get(wikidata_author_name):
                                             self.link_authors(bibkg_id_by_name_order, wikidata_author_id)
                                             self.count_order_name_author_links += 1
                                         else:
-                                            self.link_authors(id_bibkg_order, wikidata_author_id)
+                                            #self.link_authors(id_bibkg_order, wikidata_author_id)
                                             self.count_order_author_links += 1
                                         #bibkg_id = author_names_list_bibkg[wikidata_author_name]
                                 else:
@@ -406,9 +412,9 @@ class LinkByParameters():
         print(self.count_publication_relations)
         print(self.count_publication_aliases_relations)
 
-        print(self.count_order_name_author_links)
-        print(self.count_order_author_links)
-        print(self.count_not_order_author_links)            
+        print("Total de relaciones con orden y nombre de autores: {}".format(self.count_order_name_author_links))
+        print("Total de relaciones con orden y sin nombre de autores: (no se enlazaron estos casos): {}".format(self.count_order_author_links))
+        print("Total de autores enlazados por nombre, sin que exista orden en las entidades: {}".format(self.count_not_order_author_links))            
         return self.count_links, self.count_author_links, self.count_publication_links, self.count_journal_links
 
 
