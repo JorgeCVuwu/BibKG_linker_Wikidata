@@ -166,8 +166,8 @@ class LinkByID():
         #                                 google_scholar_property:{'name':'Google Scholar ID', 'dict':self.scholar_dict, 'count-links':0, 'count-total':0}}
 
         folder = 'data/wikidata_linker/'
-        self.metadata_path = folder + 'count-id-links-test-4.csv'
-        self.linked_id_csv_path = folder + 'id-links-4.csv'
+        self.metadata_path = folder + 'count-id-links-test-5.csv'
+        self.linked_id_csv_path = folder + 'id-links-5.csv'
     #funciones process: ajustan el formato del string de la ID de BibKG de cada tipo para poder compararse con Wikidata
 
     def process_dblp_url(self, entity):
