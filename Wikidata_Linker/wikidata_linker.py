@@ -150,6 +150,7 @@ if __name__ == "__main__":
     while True:
         count_links, count_authors, count_publications, count_journals = wikidata_linker.link_by_parameters('id')
         if count_publications == 0:
+        #if count_publications == 0: and count_authors == 0:    
             break
 
     count_links = wikidata_linker.link_by_comparisons()
@@ -158,6 +159,7 @@ if __name__ == "__main__":
     while True:
         count_links, count_authors, count_publications, count_journals = wikidata_linker.link_by_parameters('comparisons')
         if count_publications == 0:
+        #if count_publications == 0: and count_authors == 0:  
             break
 
     fin = time.time()

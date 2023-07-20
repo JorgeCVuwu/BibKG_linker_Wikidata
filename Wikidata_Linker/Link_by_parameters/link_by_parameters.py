@@ -4,6 +4,7 @@ import re
 import time
 import os
 import csv
+from unidecode import unidecode
 
 def is_number(string):
     patron = r'^\d+$'
@@ -13,9 +14,11 @@ def is_number(string):
         return False
 
 def process_names(name):
+    if not name:
+        return False
     name = str(name)
     split = name.split()
-    resultado = name
+    resultado = name.replace(".", "").lower()
     if len(split) == 3:
         if (len(split[1]) == 2 and "." in split[1]) or len(split[1]) == 1:
             resultado = split[0] + ' ' + split[2]
@@ -23,7 +26,8 @@ def process_names(name):
             resultado = split[0] + ' ' + split[1]
         # else:
         #     print(name)
-    return resultado.replace(".", "").lower()
+    return unidecode(resultado)
+
 
 def process_author_id(id):
     if id[0:2] == "a_":
@@ -303,7 +307,7 @@ class LinkByParameters():
                             if 'datavalue' in author['mainsnak']:
                                 wikidata_author_id = author['mainsnak']['datavalue']['value']
                                 try:
-                                    wikidata_author_name = self.wikidata_person_dict[wikidata_author_id]['name']
+                                    wikidata_author_name = process_names(self.wikidata_person_dict[wikidata_author_id]['name'])
                                 except:
                                     wikidata_author_name = None
                                 if 'order' in author:
@@ -311,10 +315,11 @@ class LinkByParameters():
                                     bibkg_order_data = order_list_bibkg.get(wikidata_author_order)
                                     #id_bibkg_order, name_order = order_list_bibkg.get(wikidata_author_order)
                                     if bibkg_order_data:
-                                        id_bibkg_order, name_order = bibkg_order_data
-                                        bibkg_id_by_name_order = author_names_list_bibkg.get(name_order)
-                                        if bibkg_id_by_name_order and bibkg_id_by_name_order == id_bibkg_order and author_names_list_bibkg.get(wikidata_author_name):
-                                            self.link_authors(bibkg_id_by_name_order, wikidata_author_id)
+                                        bibkg_id_order, bibkg_name_order = bibkg_order_data
+                                        #bibkg_id_by_name_order = author_names_list_bibkg.get(bibkg_name_order)
+                                        #if bibkg_id_by_name_order and bibkg_id_by_name_order == id_bibkg_order and author_names_list_bibkg.get(wikidata_author_name):
+                                        if wikidata_author_name and wikidata_author_name == bibkg_name_order:
+                                            self.link_authors(bibkg_id_order, wikidata_author_id)
                                             self.count_order_name_author_links += 1
                                         else:
                                             #self.link_authors(id_bibkg_order, wikidata_author_id)
@@ -322,7 +327,6 @@ class LinkByParameters():
                                         #bibkg_id = author_names_list_bibkg[wikidata_author_name]
                                 else:
                                     if wikidata_author_name:
-                                        wikidata_author_name = process_names(wikidata_author_name)
                                         bibkg_id = author_names_list_bibkg.get(wikidata_author_name)
                                         if bibkg_id:
                                             self.link_authors(bibkg_id, wikidata_author_id)

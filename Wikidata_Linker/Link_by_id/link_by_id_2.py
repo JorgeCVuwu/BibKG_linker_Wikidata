@@ -226,6 +226,16 @@ class LinkByID():
     def process_any(self, content, dict, id):
         add_to_dict(dict, content, id)
 
+
+    #link_previously_linked_entities: enlaza las entidades de BibKG y Wikidata ya enlazadas en el archivo JSON de BibKG
+    #no usado de momento
+    def link_previously_linked_entities(self, bibkg_id, wikidata_id, dblp_id):
+        self.linked_properties_dict[bibkg_id] = {'wikidata-id':wikidata_id, 'previously-linked':1}
+        self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id]) #insertar tema wikidata repetido en caso de
+        self.wikidata_linker.csv_data[bibkg_id].append('previously-linked')
+        self.wikidata_in_file[wikidata_id] = bibkg_id
+
+
     #link_entities: enlaza entidades guardándolas en la tabla para el CSV, y almacena datos del enlazamiento
     def link_entities(self, bibkg_id, wikidata_id, key, valor_at):
             property_name = self.wikidata_properties_dict[key]['name']

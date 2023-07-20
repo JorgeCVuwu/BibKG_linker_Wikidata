@@ -3,6 +3,7 @@ import re
 import time
 import os
 import csv
+from unidecode import unidecode
 
 def get_year(date):
     year = date[1:5]
@@ -25,9 +26,11 @@ def obtain_bibkg_authors(authors):
             return authors
 
 def process_names(name):
+    if not name:
+        return False
     name = str(name)
     split = name.split()
-    resultado = name
+    resultado = name.replace(".", "").lower()
     if len(split) == 3:
         if (len(split[1]) == 2 and "." in split[1]) or len(split[1]) == 1:
             resultado = split[0] + ' ' + split[2]
@@ -35,7 +38,7 @@ def process_names(name):
             resultado = split[0] + ' ' + split[1]
         # else:
         #     print(name)
-    return resultado.replace(".", "").lower()
+    return unidecode(resultado)
 
 def process_author_id(id):
     if id[0:2] == "a_":

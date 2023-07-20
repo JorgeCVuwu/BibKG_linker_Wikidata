@@ -2,7 +2,7 @@ import csv
 import json
 
 archivo_json = 'db/JSON/bibkg.json'
-archivo_csv = 'data/wikidata_linker/linked-entities-3.csv'
+archivo_csv = 'data/wikidata_linker/linked-entities-4.csv'
 count_linked_corr = 0
 
 bibkg_id_dict = {}
