@@ -93,7 +93,7 @@ class LinkByParameters():
     def link_authors(self, bibkg_id, wikidata_id):
         writed_links_dict = self.wikidata_linker.writed_links_dict
         forbidden_links_dict = self.wikidata_linker.forbidden_links_dict
-        if bibkg_id not in writed_links_dict: 
+        if bibkg_id not in writed_links_dict:
             if bibkg_id not in forbidden_links_dict:
                 bibkg_id_link = self.wikidata_linker.writed_wikidata_id_entities.get(wikidata_id)
                 if ((bibkg_id_link and bibkg_id_link == bibkg_id) or not bibkg_id_link):

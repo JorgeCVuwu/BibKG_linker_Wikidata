@@ -2,7 +2,7 @@ import csv
 import json
 
 archivo_json = 'db/JSON/bibkg.json'
-archivo_csv = 'data/wikidata_linker/id-links-3.csv'
+archivo_csv = 'data/wikidata_linker/id-links-4.csv'
 count_linked_corr = 0
 
 bibkg_id_dict = {}
@@ -89,6 +89,28 @@ with open(archivo_csv, 'r') as archivo:
         #     if fila[2]:
         #         print(fila)
 
+count_type_dict = {}
+count_type_linked_dict = {}
+count_already_linked = 0
+count_already_linked_people = 0
+with open(archivo_json) as bibkg:
+    for linea in bibkg:
+        entity = json.loads(linea)
+        id = entity['id']
+        if 'wikidata' in entity:
+            count_already_linked += 1
+        if 'type' in entity:
+            entity_type = entity['type']
+        else:
+            entity_type = 'unknown'
+        count_type_dict[entity_type] = count_type_dict.setdefault(entity_type, 0) + 1
+        if id in bibkg_id_dict:
+            if 'wikidata' not in entity:
+                count_type_linked_dict[entity_type] = count_type_linked_dict.setdefault(entity_type, 0) + 1
+            else:
+                count_already_linked_people += 1
+
 print(count_repeated_bibkg_ids)
 print(count_repeated_wikidata_ids)
-
+print(count_type_linked_dict)
+print(count_already_linked_people)

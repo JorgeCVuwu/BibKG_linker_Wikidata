@@ -178,10 +178,10 @@ class WikidataLinkerTester():
 
 
     def charge_wikidata_test_data(self):
-        print("Cargando JSON de personas de Wikidata")
-        with open(self.wikidata_person_path, 'r') as wikidata_person:
-            for linea in wikidata_person:
-                entity = json.loads(linea)
+        # print("Cargando JSON de personas de Wikidata")
+        # with open(self.wikidata_person_path, 'r') as wikidata_person:
+        #     for linea in wikidata_person:
+        #         entity = json.loads(linea)
 
         print("Cargando JSON de publicaciones de Wikidata")
         with open(self.wikidata_scholar_path, 'r') as wikidata_scholar:
@@ -192,7 +192,7 @@ class WikidataLinkerTester():
 
                 wikidata_names = entity['name']
                 if wikidata_id in self.wikidata_id_links:
-                    self.wikidata_id_links['wikidata-name'] = wikidata_names
+                    self.wikidata_id_links[wikidata_id]['wikidata-name'] = wikidata_names
 
                 
                 #Propiedades de DBLP
@@ -203,7 +203,7 @@ class WikidataLinkerTester():
 
                 dblp_properties = [dblp_author_property, dblp_publication_property, dblp_venue_property, dblp_event_property]
 
-                for property_id, content in claims:
+                for property_id, content in claims.items():
 
                     #Test: test_dblp_properties_in_wikidata()
                     if property_id in dblp_properties:
@@ -225,10 +225,11 @@ class WikidataLinkerTester():
     def test_journal_json_data(self):
         print("Cargando JSON de journals enlazados de BibKG")
         with open(self.journals_json_path, 'r') as bibkg_journals:
-            journal_entity = json.loads(bibkg_journals)
-            for wikidata_id, bibkg_id_list in journal_entity.values():
+            c_not_name = 0
+            journal_entity = json.load(bibkg_journals)
+            for wikidata_id, bibkg_id_list in journal_entity.items():
                 len_bibkg_id_list = len(bibkg_id_list)
-                wikidata_id_names = self.wikidata_id_links[wikidata_id]['wikidata-name']
+                wikidata_id_names = self.wikidata_id_links[wikidata_id].get('wikidata-name')
                 bibkg_names_dict = {}
                 for bibkg_id in bibkg_id_list:
                     bibkg_id_name = self.bibkg_id_links[bibkg_id]['bibkg-name']
@@ -243,12 +244,15 @@ class WikidataLinkerTester():
                     dominant_name = max(bibkg_names_dict, key=lambda clave: bibkg_names_dict[clave])
                 self.count_total_wikidata_journals += 1
 
-                if dominant_name:
+                if dominant_name and wikidata_id_names:
                     for name_value in wikidata_id_names.values():
                         processed_name = process_names(name_value['value'])
                         if processed_name == dominant_name:
                             self.count_same_name_journals += 1
                             break
+                elif not wikidata_id_names:
+                    c_not_name += 1
+        print(c_not_name)
             
         print("Total de entidades de journals de Wikidata enlazadas: {}".format(self.count_total_wikidata_journals))
         print("Total de entidades de Wikidata con journals de BibKG con el mismo nombre: {}".format(self.count_same_name_bibkg_journals))
