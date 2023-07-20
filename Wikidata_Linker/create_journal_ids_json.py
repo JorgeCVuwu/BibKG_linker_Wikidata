@@ -2,7 +2,7 @@ import csv
 import json
 
 json_file = 'db/JSON/bibkg.json'
-archivo_csv = 'data/wikidata_linker/linked-entities-3.csv'
+archivo_csv = 'data/wikidata_linker/linked-entities-4.csv'
 journals_json_path = 'data/wikidata_linker/repeated_journal_links.json'
 count_linked_corr = 0
 
