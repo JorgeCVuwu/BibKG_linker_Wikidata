@@ -4,6 +4,7 @@ import re
 import os
 from unidecode import unidecode
 from statistics import mean
+import time
 
 def is_number(string):
     patron = r'^\d+$'
@@ -49,6 +50,18 @@ class WikidataLinkerTester():
 
         self.bibkg_previous_id_links = {}
         self.wikidata_previous_id_links = {}
+
+        #conteo tiempos de ejecución
+        self.wikidata_scholar_time = 0
+        self.wikidata_person_time = 0
+        self.bibkg_time = 0
+        self.total_links_csv_time = 0
+        self.id_links_csv_time = 0
+
+        #conteo tamaños de archivos
+        self.count_bibkg_entities = 0
+        self.count_wikidata_person_entities = 0
+        self.count_wikidata_scholar_entities = 0
         
         #test_previously_linked_entities
         self.count_wikidata_previously_linked = 0
@@ -84,6 +97,7 @@ class WikidataLinkerTester():
 
         #Se guardan datos de todos los links
         print("Cargando CSV de enlaces totales")
+        inicio = time.time()
         with open(self.linked_entities_path, 'r') as archivo:
             lector_csv = csv.reader(archivo)
             first_line = True
@@ -109,10 +123,13 @@ class WikidataLinkerTester():
                         property_value = fila[i]
                         if property_value:
                             link_object[csv_property] = property_value
+        fin = time.time()
+        self.total_links_csv_time = fin - inicio
 
 
 
         print("Cargando CSV de enlaces mediante IDs")
+        inicio = time.time()
         with open(self.id_linked_entities_path, 'r') as archivo:
             lector_csv = csv.reader(archivo)
             first_line = True        
@@ -134,6 +151,8 @@ class WikidataLinkerTester():
                         property_value = fila[i]
                         if property_value:
                             link_object[csv_property] = property_value
+        fin = time.time()
+        self.id_links_csv_time = fin - inicio
 
         # for bibkg_id, objeto in self.bibkg_id_links.items():
         #     print(bibkg_id)
@@ -145,13 +164,15 @@ class WikidataLinkerTester():
 
 
     def charge_bibkg_test_data(self):
-
         print("Cargando JSON de BibKG")
+        inicio = time.time()
         with open(self.bibkg_path, 'r') as bibkg:
             for linea in bibkg:
                 entity = json.loads(linea)
                 bibkg_name = entity.get('name')
                 bibkg_id = entity['id']
+
+                self.count_bibkg_entities += 1
 
                 if bibkg_id in self.bibkg_id_links:
                     if bibkg_name:
@@ -193,13 +214,20 @@ class WikidataLinkerTester():
                         self.wikidata_previous_id_links[wikidata_id] = self.bibkg_previous_id_links[bibkg_id]
 
                     self.count_wikidata_previously_linked += 1
+        fin = time.time()
+
+        self.bibkg_time = fin - inicio
 
 
     def charge_wikidata_test_data(self):
         print("Cargando JSON de personas de Wikidata")
+        inicio = time.time()
         with open(self.wikidata_person_path, 'r') as wikidata_person:
             for linea in wikidata_person:
                 entity = json.loads(linea)
+
+                self.count_wikidata_person_entities += 1
+
                 wikidata_id = entity['id']
                 claims = entity['claims']
                 #Propiedades de DBLP
@@ -213,15 +241,21 @@ class WikidataLinkerTester():
                             self.count_linked_dblp_authors += 1
                             ###############
 
+        fin = time.time()
+        self.wikidata_person_time = fin - inicio
+
 
                     
 
         print("Cargando JSON de publicaciones de Wikidata")
+        inicio = time.time()
         with open(self.wikidata_scholar_path, 'r') as wikidata_scholar:
             for linea in wikidata_scholar:
                 entity = json.loads(linea)
                 wikidata_id = entity['id']
                 claims = entity['claims']
+
+                self.count_wikidata_scholar_entities += 1
 
                 wikidata_names = entity['name']
                 if wikidata_id in self.wikidata_id_links:
@@ -256,7 +290,7 @@ class WikidataLinkerTester():
                 
 
                 #test_linked_publication_authors y test_string_names
-                if wikidata_id in self.wikidata_id_links or author_id in self.wikidata_previous_id_links:
+                if wikidata_id in self.wikidata_id_links or wikidata_id in self.wikidata_previous_id_links:
                     for property_id, content in claims.items():
                         #author property
                         order_authors_dict = {}
@@ -311,12 +345,10 @@ class WikidataLinkerTester():
                             if (count_linked_order_authors + count_not_linked_order_authors) > 0:
                                 linked_vs_total_not_string_proportion = count_linked_order_authors / (count_linked_order_authors + count_not_linked_order_authors)
                                 self.available_linked_authors_proportion_list.append(linked_vs_total_not_string_proportion)
-                            
-                            
-
-
-                                    
-                            
+        
+        fin = time.time()
+        self.wikidata_scholar_time = fin - inicio                 
+                    
 
     def test_journal_json_data(self):
         print("Cargando JSON de journals enlazados de BibKG")
@@ -335,9 +367,13 @@ class WikidataLinkerTester():
                 if len(bibkg_names_dict) == 1:
                     self.count_same_name_bibkg_journals += 1
                     dominant_name = list(bibkg_names_dict)[0]
-                if len(bibkg_names_dict) / len_bibkg_id_list > 0.8:
-                    self.count_almost_same_name_bibkg_journals += 1
+                else:
                     dominant_name = max(bibkg_names_dict, key=lambda clave: bibkg_names_dict[clave])
+                    if bibkg_names_dict[dominant_name] / len_bibkg_id_list > 0.8:
+                        self.count_almost_same_name_bibkg_journals += 1
+                    else:
+                        dominant_name = ''
+                    
                 self.count_total_wikidata_journals += 1
 
                 if dominant_name and wikidata_id_names:
@@ -348,7 +384,7 @@ class WikidataLinkerTester():
                             break
                 elif not wikidata_id_names:
                     c_not_name += 1
-        print(c_not_name)
+        #print(c_not_name)
             
         print("Total de entidades de journals de Wikidata enlazadas: {}".format(self.count_total_wikidata_journals))
         print("Total de entidades de Wikidata con journals de BibKG con el mismo nombre: {}".format(self.count_same_name_bibkg_journals))
@@ -363,7 +399,19 @@ class WikidataLinkerTester():
     def charge_test_data(self):
         self.charge_csv_test_data()
         self.charge_bibkg_test_data()
-        self.charge_wikidata_test_data()        
+        self.charge_wikidata_test_data()
+
+    def reading_time_test(self):
+        print("Tiempo de ejecución archivo CSV de todos los enlaces: {} segundos".format(self.total_links_csv_time))
+        print("Tiempo de ejecución archivo CSV de los enlaces por IDs: {} segundos".format(self.id_links_csv_time))
+        print("Tiempo de ejecución archivo JSON de personas de Wikidata: {} segundos".format(self.wikidata_person_time))
+        print("Tiempo de ejecución archivo JSON de publicaciones de Wikidata: {} segundos".format(self.wikidata_scholar_time))
+        print("Tiempo de ejecución archivo JSON de BibKG: {} segundos".format(self.bibkg_time))
+
+    def print_files_size(self):
+        print("N° entidades archivo JSON de BibKG: {}".format(self.count_bibkg_entities))
+        print("N° entidades archivo JSON de Wikidata de personas: {}".format(self.count_wikidata_person_entities))
+        print("N° entidades archivo JSON de Wikidata de publicaciones: {}".format(self.count_wikidata_scholar_entities))
 
     #test_previously_linked_entities: printea los resultados relacionados con el enlazamiento con enlaces ya existentes en el JSON de BibKG
     def test_previously_linked_entities(self):
@@ -408,18 +456,24 @@ class WikidataLinkerTester():
         available_linked_authors_proportion_mean = mean(self.available_linked_authors_proportion_list)
 
         print("En los autores de publicaciones enlazadas con orden en los autores:")
-        print("Promedio de proporción de strings de autores vs enlaces totales: {}".format(string_authors_proportion_mean))
-        print("Promedio de proporción de autores enlazados vs enlaces totales: {}".format(linked_authors_proportion_mean))
+        print("Promedio de proporción de strings de autores vs entidades totales: {}".format(string_authors_proportion_mean))
+        print("Promedio de proporción de autores enlazados vs entidades totales: {}".format(linked_authors_proportion_mean))
         print("Promedio de proporción de autores enlazados vs autores con entidades en Wikidata: {}".format(available_linked_authors_proportion_mean))
 
     def test_string_authors(self):
         string_authors_len = len(self.total_string_authors_dict)
         entity_authors_len = len(self.total_author_entities_dict)
+        count_total_author_linked_entities = 0
+
+        for wikidata_id in self.total_author_entities_dict:
+            if wikidata_id in self.wikidata_id_links or wikidata_id in self.wikidata_previous_id_links:
+                count_total_author_linked_entities += 1
 
         string_authors_proportion = string_authors_len / (string_authors_len + entity_authors_len)
         print("En los autores de publicaciones enlazadas con orden en los autores:")
         print("Total de nombres procesados detectados en la propiedad string authors de publicaciones enlazadas: {}".format(string_authors_len))
         print("Total de entidades detectadas en la propiedad authors de publicaciones enlazadas: {}".format(entity_authors_len))
+        print("Total de entidades detectadas y enlazadas en la propiedad authors de publicaciones enlazadas: {}".format(count_total_author_linked_entities))
         print("Proporción de string authors respecto al total de autores detectados: {}".format(string_authors_proportion))
 
 if __name__ == "__main__":
@@ -430,6 +484,8 @@ if __name__ == "__main__":
     tester.charge_test_data()
 
     #Calcular y printear resultados
+    tester.reading_time_test()
+    tester.print_files_size()
     tester.test_previously_linked_entities()    
     tester.test_dblp_properties_in_wikidata()
     tester.test_journal_json_data()
