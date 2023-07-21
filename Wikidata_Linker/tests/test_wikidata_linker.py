@@ -196,10 +196,25 @@ class WikidataLinkerTester():
 
 
     def charge_wikidata_test_data(self):
-        # print("Cargando JSON de personas de Wikidata")
-        # with open(self.wikidata_person_path, 'r') as wikidata_person:
-        #     for linea in wikidata_person:
-        #         entity = json.loads(linea)
+        print("Cargando JSON de personas de Wikidata")
+        with open(self.wikidata_person_path, 'r') as wikidata_person:
+            for linea in wikidata_person:
+                entity = json.loads(linea)
+                wikidata_id = entity['id']
+                claims = entity['claims']
+                #Propiedades de DBLP
+                dblp_author_property = 'P2456'
+                for property_id, property_content in claims.items():
+                    if property_id == dblp_author_property:
+                        self.count_dblp_authors += 1
+                        self.count_dblp_properties += 1
+                        if wikidata_id in self.wikidata_id_links or wikidata_id in self.wikidata_previous_id_links:
+                            self.count_linked_dblp_properties += 1
+                            self.count_linked_dblp_authors += 1
+                            ###############
+
+
+                    
 
         print("Cargando JSON de publicaciones de Wikidata")
         with open(self.wikidata_scholar_path, 'r') as wikidata_scholar:
@@ -241,7 +256,7 @@ class WikidataLinkerTester():
                 
 
                 #test_linked_publication_authors y test_string_names
-                if wikidata_id in self.wikidata_id_links:
+                if wikidata_id in self.wikidata_id_links or author_id in self.wikidata_previous_id_links:
                     for property_id, content in claims.items():
                         #author property
                         order_authors_dict = {}
@@ -285,19 +300,20 @@ class WikidataLinkerTester():
                         
                         count_total_order_authors = len(order_authors_dict)
 
-                        linked_vs_total_proportion = count_linked_order_authors / count_total_order_authors
-                        linked_vs_total_not_string_proportion = count_linked_order_authors / (count_linked_order_authors + count_not_linked_order_authors)
-                        string_vs_total_proportion = count_string_order_authors / count_total_order_authors
+                        if count_total_order_authors > 0:
 
+                            linked_vs_total_proportion = count_linked_order_authors / count_total_order_authors
+                            string_vs_total_proportion = count_string_order_authors / count_total_order_authors
 
-                        self.linked_authors_proportion_list.append(linked_vs_total_proportion)
-                        self.available_linked_authors_proportion_list.append(linked_vs_total_not_string_proportion)
-                        self.string_authors_proportion_list.append(string_vs_total_proportion)
-                        
+                            self.linked_authors_proportion_list.append(linked_vs_total_proportion)
+                            self.string_authors_proportion_list.append(string_vs_total_proportion)
 
+                            if (count_linked_order_authors + count_not_linked_order_authors) > 0:
+                                linked_vs_total_not_string_proportion = count_linked_order_authors / (count_linked_order_authors + count_not_linked_order_authors)
+                                self.available_linked_authors_proportion_list.append(linked_vs_total_not_string_proportion)
+                            
+                            
 
-                        #author string property
-                        
 
                                     
                             
@@ -368,11 +384,11 @@ class WikidataLinkerTester():
         # print(count_redirect)
 
     def test_dblp_properties_in_wikidata(self):
-        print("Total de entidades de Wikidata enlazados con DBLP: {}".format(self.count_dblp_properties))
-        print("Total de entidades de Wikidata enlazados con DBLP y con BibKG: {}".format(self.count_linked_dblp_properties))
+        print("Total de entidades de Wikidata enlazadas con DBLP: {}".format(self.count_dblp_properties))
+        print("Total de entidades de Wikidata enlazadas con DBLP y con BibKG: {}".format(self.count_linked_dblp_properties))
 
-        print("Total de publicaciones de Wikidata enlazados con DBLP: {}".format(self.count_dblp_publications))
-        print("Total de publicaciones de Wikidata enlazados con DBLP y con BibKG: {}".format(self.count_linked_dblp_publications))
+        print("Total de publicaciones de Wikidata enlazadas con DBLP: {}".format(self.count_dblp_publications))
+        print("Total de publicaciones de Wikidata enlazadas con DBLP y con BibKG: {}".format(self.count_linked_dblp_publications))
 
         print("Total de autores de Wikidata enlazados con DBLP: {}".format(self.count_dblp_authors))
         print("Total de autores de Wikidata enlazados con DBLP y con BibKG: {}".format(self.count_linked_dblp_authors))
