@@ -9,6 +9,9 @@ Additionally, this project aims to expand the range of information accessible wi
 
 The continuous growth and enrichment of BibKG will significantly augment the amount of information accessible to researchers, providing them with robust and extensive resources for their scholarly endeavors.
 
+# Getting started
+
+This project uses three main methods that allow obtaining links between BibKG and Wikidata:
 
 ## BibKG Parser
 
