@@ -2,7 +2,7 @@ import csv
 import json
 
 archivo_json = 'db/JSON/bibkg.json'
-archivo_csv = 'data/wikidata_linker/linked-entities-4.csv'
+archivo_csv = 'data/wikidata_linker/linked-entities-5.csv'
 count_linked_corr = 0
 
 bibkg_id_dict = {}
@@ -34,9 +34,9 @@ with open(archivo_csv, 'r') as archivo:
         # if bibkg_id == 'a_Nicholas_J__Dobbins':
         #     print(fila)
         #     print("adskfljgwkjfdshgeasrh")
-        if wikidata_id == 'Q2644293':
-            print(fila)
-            print("a")
+        # if wikidata_id == 'Q2644293':
+        #     print(fila)
+        #     print("a")
         bibkg_id_dict.setdefault(bibkg_id,[])
         bibkg_id_dict[bibkg_id].append(wikidata_id)
         wikidata_id_dict.setdefault(wikidata_id,[])
@@ -83,6 +83,7 @@ count_journal = 0
 count_author_and_pub = 0
 
 c = 0
+count_id_and_previous = 0
 first_row = []
 count_first_link_dict = {}
 with open(archivo_csv, 'r') as archivo:
@@ -102,17 +103,18 @@ with open(archivo_csv, 'r') as archivo:
             #     c+=1
             #     if c > 10:
             #         break
+            if fila[2] and fila[5]:
+                count_id_and_previous += 1
+            for i in range(2, len(first_row)):
 
-            for i in range(4, len(first_row)):
-                if fila[i]:
-                    count_first_link_dict[first_row[i]] = count_first_link_dict.setdefault(first_row[i], 0) + 1
-                    break
-
+                    if fila[i] and i != 3 and i != 4:
+                        count_first_link_dict[first_row[i]] = count_first_link_dict.setdefault(first_row[i], 0) + 1
+                        break
             if wikidata_id in repeated_wikidata_ids_list:
-                if (fila[6] or fila[10]) and (fila[4] or fila[7] or fila[5] or fila[9] or fila[8] or fila[11]):
+                if (fila[6+1] or fila[10+1]) and (fila[4+1] or fila[7+1] or fila[5+1] or fila[9+1] or fila[8+1] or fila[11+1]):
                     count_journal_and_else += 1
                     count_author_and_pub += 1
-                if '_corr' in bibkg_id and not (fila[6] or fila[10]):
+                if '_corr' in bibkg_id and not (fila[6+1] or fila[10+1]):
                     #print(fila)
                     # c+= 1
                     # if c > 10:
@@ -127,12 +129,12 @@ with open(archivo_csv, 'r') as archivo:
                 #     break
                 #     count_id_and += 1
 
-                if fila[5] or fila[9]:
+                if fila[5+1] or fila[9+1]:
                     count_author_rep += 1
 
-                if not (fila[6] or fila[10]):
+                if not (fila[6+1] or fila[10+1]):
                     count_not_journal += 1
-                if fila[6] or fila[10]:
+                if fila[6+1] or fila[10+1]:
                     count_journal += 1
                 for i in range(4, len(fila)):
                     value = fila[i]
@@ -160,10 +162,8 @@ with open(archivo_json) as bibkg:
             entity_type = 'unknown'
         count_type_dict[entity_type] = count_type_dict.setdefault(entity_type, 0) + 1
         if id in bibkg_id_dict:
-            if 'wikidata' not in entity:
+            #if 'wikidata' not in entity:
                 count_type_linked_dict[entity_type] = count_type_linked_dict.setdefault(entity_type, 0) + 1
-            else:
-                count_already_linked_people += 1
 
 
 
@@ -185,5 +185,7 @@ print(count_type_dict)
 print(count_type_linked_dict)
 print(count_already_linked)
 print(count_already_linked_people)
+
+print(count_id_and_previous)
 
 

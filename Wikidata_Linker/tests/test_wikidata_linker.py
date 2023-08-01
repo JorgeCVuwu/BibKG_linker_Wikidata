@@ -35,9 +35,9 @@ class WikidataLinkerTester():
 
         #rutas
         folder = 'data/wikidata_linker/'
-        self.id_linked_entities_path = folder + 'id-links-4.csv'
-        self.linked_entities_path = folder + 'linked-entities-4.csv'
-        self.bibkg_path = 'db/JSON/bibkg.json'
+        self.id_linked_entities_path = folder + 'id-links-5.csv'
+        self.linked_entities_path = folder + 'linked-entities-5.csv'
+        self.bibkg_path = 'db/JSON/bibkg_copy.json'
         carpeta_externa = "D:\Memoria" 
         wikidata_person_name = "wikidata_person_4.json"
         wikidata_scholar_name = "wikidata_scholar_4.json"
@@ -92,6 +92,11 @@ class WikidataLinkerTester():
         self.total_string_authors_dict = {}
         self.total_author_entities_dict = {}
         
+        #test_total_publications_in_linked_authors
+
+        self.wikidata_linked_person_dict = {}
+        self.bibkg_linked_publications_from_person_dict = {}
+        self.bibkg_not_linked_publications_from_person_dict = {}
 
     def charge_csv_test_data(self):
 
@@ -229,6 +234,11 @@ class WikidataLinkerTester():
                 self.count_wikidata_person_entities += 1
 
                 wikidata_id = entity['id']
+
+                #test_linked_publications_from_authors
+                if wikidata_id in self.wikidata_id_links or wikidata_id in self.wikidata_previous_id_links:
+                    self.wikidata_linked_person_dict[wikidata_id] = True
+
                 claims = entity['claims']
                 #Propiedades de DBLP
                 dblp_author_property = 'P2456'
@@ -249,6 +259,8 @@ class WikidataLinkerTester():
 
         print("Cargando JSON de publicaciones de Wikidata")
         inicio = time.time()
+        c = 0
+        d = 0
         with open(self.wikidata_scholar_path, 'r') as wikidata_scholar:
             for linea in wikidata_scholar:
                 entity = json.loads(linea)
@@ -346,6 +358,28 @@ class WikidataLinkerTester():
                                 linked_vs_total_not_string_proportion = count_linked_order_authors / (count_linked_order_authors + count_not_linked_order_authors)
                                 self.available_linked_authors_proportion_list.append(linked_vs_total_not_string_proportion)
         
+
+                #test_total_publications_in_linked_authors
+                for property_id, content in claims.items():
+                    #author property
+                    if property_id == 'P50':
+                        for author in content:
+                            if 'datavalue' in author['mainsnak']:
+                                author_id = author['mainsnak']['datavalue'].get('value')
+                            if author_id in self.wikidata_linked_person_dict:
+                                if wikidata_id in self.wikidata_id_links or wikidata_id in self.wikidata_previous_id_links:
+                                    self.bibkg_linked_publications_from_person_dict[wikidata_id] = True                         
+                                else:
+                                    self.bibkg_not_linked_publications_from_person_dict[wikidata_id] = True
+                                    # if c < 15:
+                                    #     print("Publicación no enlazada: {}".format(wikidata_id))
+                                    #     print("Autor de publicación: {}".format(author_id))
+                                    # c+=1
+                                break
+                            
+                                    #self.wikidata_linked_person_dict = {}
+                                    #self.bibkg_linked_publications_from_person_dict = {}                            
+
         fin = time.time()
         self.wikidata_scholar_time = fin - inicio                 
                     
@@ -476,6 +510,19 @@ class WikidataLinkerTester():
         print("Total de entidades detectadas y enlazadas en la propiedad authors de publicaciones enlazadas: {}".format(count_total_author_linked_entities))
         print("Proporción de string authors respecto al total de autores detectados: {}".format(string_authors_proportion))
 
+
+    def test_total_publications_in_linked_authors(self):
+        total_linked_publications = len(self.bibkg_linked_publications_from_person_dict)
+        total_not_linked_publications = len(self.bibkg_not_linked_publications_from_person_dict)
+        total_publications = total_linked_publications + total_not_linked_publications
+        total_percent = (total_linked_publications/total_publications)*100
+
+        print("Total de entidades de Wikidata de publicaciones de autores enlazados que están enlazados: {}".format(total_linked_publications))
+        print("Total de entidades de Wikidata de publicaciones de autores enlazados: {}".format(total_publications))
+        print("Porcentaje de publicaciones enlazadas vs publicaciones totales de autores enlazados: {}%".format(total_percent))
+
+
+
 if __name__ == "__main__":
 
     tester = WikidataLinkerTester()
@@ -491,3 +538,4 @@ if __name__ == "__main__":
     tester.test_journal_json_data()
     tester.test_linked_publication_authors()
     tester.test_string_authors()
+    tester.test_total_publications_in_linked_authors()

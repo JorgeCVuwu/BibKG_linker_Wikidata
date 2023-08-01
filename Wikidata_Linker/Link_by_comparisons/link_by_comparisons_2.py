@@ -47,7 +47,7 @@ def process_author_id(id):
 #get_dblp_url: extrae el ID de BibKG de una entidad, a partir de la propiedad 'url' (de existir las condiciones adecuadas)
 def get_dblp_url(entity):
     #print(url)
-    url = entity[':url'][0]['value']
+    url = entity['url'][0]['value']
     split = url.split('/')
     if split[0] != 'db':
         return False
@@ -75,6 +75,7 @@ class LinkByComparisons():
         self.wikidata_person = {}
 
         self.count_links = 0
+        self.count_wikidata_forbidden = 0
 
     #add_property: crea diccionarios de almacenamiento de datos para cada tipo de parámetro de comparación, según el nombre de la propiedad
     #El diccionario posee como llave el string de los nombres, que posee asociado un set() de IDs con ese nombre
@@ -87,6 +88,8 @@ class LinkByComparisons():
             setattr(self, property_dict_name, {})
         if property in entity:
             property_value = entity[property]
+            if property == 'url':
+                property_value = property_value[0]['value']
             if property == 'name':
                 property_value = process_names(property_value)
             property_dict = getattr(self, property_dict_name)
@@ -256,15 +259,22 @@ class LinkByComparisons():
                     dblp_id = ''
                 bibkg_id_link = self.wikidata_linker.writed_wikidata_id_entities.get(wikidata_id)
                 if ((bibkg_id_link and bibkg_id_link == bibkg_id) or not bibkg_id_link):
-                    writed_links_dict[bibkg_id] = wikidata_id
-                    self.count_links += 1
-                    self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
-                    self.wikidata_linker.csv_data[bibkg_id].append('linked_by_comparisons')
+                    if wikidata_id not in self.wikidata_linker.writed_not_id_wikidata_entities:
+                        writed_links_dict[bibkg_id] = wikidata_id
+                        self.count_links += 1
+                        self.wikidata_linker.csv_data.setdefault(bibkg_id, [wikidata_id, dblp_id])
+                        self.wikidata_linker.csv_data[bibkg_id].append('linked_by_comparisons')
+                        self.wikidata_linker.writed_not_id_wikidata_entities[wikidata_id] = bibkg_id
+                    elif not bibkg_id_link:
+                        forbidden_links_dict[bibkg_id] = True
+                        forbidden_links_dict[self.wikidata_linker.writed_not_id_wikidata_entities[wikidata_id]] = True
+                        self.count_wikidata_forbidden += 2
         #Si una entidad es relacionada con otra entidad a la ya asociada, se elimina la asociación
         elif writed_links_dict[bibkg_id] != wikidata_id:
             if bibkg_id not in self.wikidata_linker.writed_id_entities:
                 forbidden_links_dict[bibkg_id] = True
                 del writed_links_dict[bibkg_id]
+                self.count_wikidata_forbidden += 1
         else:
             self.wikidata_linker.csv_data[bibkg_id].append('linked_by_comparisons')    
 
@@ -284,7 +294,7 @@ class LinkByComparisons():
 
                 if 'key' in entity:
                     self.dblp_ids_dict[id] = entity['key']
-                elif ':url' in entity:
+                elif 'url' in entity:
                     dblp_id = get_dblp_url(entity)
                     if dblp_id:
                         self.dblp_ids_dict[id] = dblp_id
@@ -353,4 +363,5 @@ class LinkByComparisons():
                     self.link_entities(total_entities[0], id)
                     #self.wikidata_linker.writed_links_dict[total_entities[0]] = id
 
+        print("forbidden comparisons: {}".format(self.count_wikidata_forbidden))
         return self.count_links
