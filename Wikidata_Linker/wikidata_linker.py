@@ -18,9 +18,9 @@ class WikidataLinker:
         self.bibkg_path = bibkg_path
         self.wikidata_person_path = wikidata_person_path
         self.wikidata_scholar_path = wikidata_scholar_path
-        self.link_csv_path = "data/wikidata_linker/linked-entities-4.csv"
-        self.link_id_csv_path = "data/wikidata_linker/linked-id-entities-4.csv"
-        self.metadata_path = "data/wikidata_linker/metadata-4.csv"
+        self.link_csv_path = "data/wikidata_linker/linked-entities-6.csv"
+        self.link_id_csv_path = "data/wikidata_linker/linked-id-entities-6.csv"
+        self.metadata_path = "data/wikidata_linker/metadata-6.csv"
 
         #contadores
 
@@ -28,17 +28,20 @@ class WikidataLinker:
         self.count_forbidden = 0
 
         #Diccionarios que almacenan información referente a los enlaces
+        self.bibkg_id_linked_in_file = {}
         self.writed_links_dict = {}
         self.forbidden_links_dict = {}
         self.writed_id_entities = {}
         self.writed_wikidata_id_entities = {}
+        self.writed_not_id_wikidata_entities = {}
 
         self.csv_data_header = [
-            'bibkg_id', 'wikidata_id', 'other_wikidata_ids', 'dblp_id', 'linked_by_id', 'linked_by_id_recursion_authors', 
+            'bibkg_id', 'wikidata_id', 'previous_link', 'other_wikidata_ids', 'dblp_id', 'linked_by_id', 'linked_by_id_recursion_authors', 
             'linked_by_id_recursion_journals', 'linked_by_id_recursion_publications', 'linked_by_comparisons', 
             'linked_by_comparisons_recursion_authors',  'linked_by_comparisons_recursion_journals', 
             'linked_by_comparisons_recursion_publications'
         ]
+        self.linked_previous_link = {}
 
         self.csv_data = {}
 
@@ -50,33 +53,44 @@ class WikidataLinker:
             self.count_link_types = {}
             writer = csv.writer(archivo_csv)
             writer.writerow(self.csv_data_header)
-            try:
-                for bibkg_id, link_data in self.csv_data.items():
-                    wikidata_id = link_data[0]
-                    dblp_id = link_data[1]
-                    repeated_wikidata_ids = get_strings_with_prefix(link_data, 'wid###')
-                    repeated_wikidata_ids_string = ''
-                    for repeated_id in repeated_wikidata_ids:
-                        if repeated_wikidata_ids_string:
-                            repeated_wikidata_ids_string += '###'
-                        repeated_wikidata_ids_string += repeated_id
-                    fila = [bibkg_id, wikidata_id,repeated_wikidata_ids_string, dblp_id] # añadir DBLP ID, de existir
-                    for link_properties in self.csv_data_header[4:]:
-                        if link_properties in link_data:
-                            fila.append('1')
-                        else:
-                            fila.append('')
-
-                    if bibkg_id not in self.forbidden_links_dict:
-                        writer.writerow(fila)
-                        self.total_links_writed += 1
+            #try:
+            for bibkg_id, link_data in self.csv_data.items():
+                wikidata_id = link_data[0]
+                if bibkg_id in self.bibkg_id_linked_in_file:
+                    previous_link = self.bibkg_id_linked_in_file[bibkg_id]
+                else:
+                    previous_link = ''
+                dblp_id = link_data[1]
+                repeated_wikidata_ids = get_strings_with_prefix(link_data, 'wid###')
+                repeated_wikidata_ids_string = ''
+                for repeated_id in repeated_wikidata_ids:
+                    if repeated_wikidata_ids_string:
+                        repeated_wikidata_ids_string += '###'
+                    repeated_wikidata_ids_string += repeated_id
+                fila = [bibkg_id, wikidata_id, previous_link, repeated_wikidata_ids_string, dblp_id] # añadir DBLP ID, de existir
+                for link_properties in self.csv_data_header[5:]:
+                    if link_properties in link_data:
+                        fila.append('1')
                     else:
-                        self.count_forbidden += 1
+                        fila.append('')
+
+                if bibkg_id not in self.forbidden_links_dict:
+                    if bibkg_id in self.bibkg_id_linked_in_file:
+                        self.linked_previous_link[bibkg_id] = True
+                    writer.writerow(fila)
+                    self.total_links_writed += 1
+                else:
+                    self.count_forbidden += 1
                         #se cuentan los tipos de enlaces en un diccionario según el tipo de enlace
-            except ValueError as e:
-                print(e)
-                print(bibkg_id)
-                print(link_data)
+            
+            #Escribir entidades previamente enlazadas, no relacionadas con el enlazamiento realizado
+            for bibkg_id, wikidata_id in self.bibkg_id_linked_in_file.items():
+                if bibkg_id not in self.linked_previous_link:
+                    fila = [bibkg_id, wikidata_id, wikidata_id]
+                    for i in range(3, len(self.csv_data_header)):
+                        fila.append('')
+                    writer.writerow(fila)
+                    
                                                     
 
         #write_metadata_csv: guarda los metadatos del proceso (datos principales relacionados a la ejecución del proceso y conteos de enlazamientos)
@@ -130,12 +144,12 @@ if __name__ == "__main__":
     inicio = time.time()
 
     json_folder = "db/JSON/"
-    bibkg_path = json_folder + "bibkg.json"
+    bibkg_path = json_folder + "bibkg_copy.json"
 
     #Rutas de los archivos del proceso
     carpeta_externa = "D:\Memoria" 
-    wikidata_person_name = "wikidata_person_5.json"
-    wikidata_scholar_name = "wikidata_scholar_5.json"
+    wikidata_person_name = "wikidata_person_4.json"
+    wikidata_scholar_name = "wikidata_else_4.json"
 
     wikidata_person_path = os.path.join(carpeta_externa, wikidata_person_name)
     wikidata_scholar_path = os.path.join(carpeta_externa, wikidata_scholar_name)
@@ -145,22 +159,24 @@ if __name__ == "__main__":
     #Flujo de enlazamiento
 
     wikidata_linker.link_by_id()
-    print(len(wikidata_linker.writed_links_dict))
+    print("Enlaces realizados por IDs: {}".format(len(wikidata_linker.writed_links_dict)))
 
     while True:
         count_links, count_authors, count_publications, count_journals = wikidata_linker.link_by_parameters('id')
-        if count_publications == 0:
-        #if count_publications == 0: and count_authors == 0:    
+        #if count_publications == 0:
+        if count_publications == 0 and count_authors == 0:    
             break
+    print("Enlaces ralizados por relaciones: {}".format(count_links))
 
     count_links = wikidata_linker.link_by_comparisons()
-    print(count_links)
+    print("Enlaces ralizados por comparaciones: {}".format(count_links))
     
     while True:
         count_links, count_authors, count_publications, count_journals = wikidata_linker.link_by_parameters('comparisons')
-        if count_publications == 0:
-        #if count_publications == 0: and count_authors == 0:  
+        #if count_publications == 0:
+        if count_publications == 0 and count_authors == 0:  
             break
+    print("Enlaces ralizados por relaciones: {}".format(count_links))
 
     fin = time.time()
 

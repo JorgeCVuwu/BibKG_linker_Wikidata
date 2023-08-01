@@ -2,7 +2,7 @@ import json
 
 # Ruta y nombre del archivo de salida fusionado
 folder = 'D:\Memoria'
-archivo_fusionado = folder + '\wikidata-fusion.json'
+archivo_fusionado = folder + '\wikidata_fusion.json'
 
 # Ruta y nombres de los archivos de entrada
 archivo1 = folder + '\wikidata_scholar_4.json'

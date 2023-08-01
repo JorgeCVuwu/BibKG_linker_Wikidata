@@ -39,7 +39,7 @@ def verify_substring(list, substring):
 #get_dblp_url: extrae el ID de BibKG de una entidad, a partir de la propiedad 'url' (de existir las condiciones adecuadas)
 def get_dblp_url(entity):
     #print(url)
-    url = entity[':url'][0]['value']
+    url = entity['url'][0]['value']
     split = url.split('/')
     if split[0] != 'db':
         return False
@@ -166,8 +166,8 @@ class LinkByID():
         #                                 google_scholar_property:{'name':'Google Scholar ID', 'dict':self.scholar_dict, 'count-links':0, 'count-total':0}}
 
         folder = 'data/wikidata_linker/'
-        self.metadata_path = folder + 'count-id-links-test-5.csv'
-        self.linked_id_csv_path = folder + 'id-links-5.csv'
+        self.metadata_path = folder + 'count-id-links-test-6.csv'
+        self.linked_id_csv_path = folder + 'id-links-6.csv'
     #funciones process: ajustan el formato del string de la ID de BibKG de cada tipo para poder compararse con Wikidata
 
     def process_dblp_url(self, entity):
@@ -357,7 +357,7 @@ class LinkByID():
 
                 if 'key' in entity:
                     self.dblp_ids_dict[id] = entity['key']
-                elif ':url' in entity:
+                elif 'url' in entity:
                     dblp_id = get_dblp_url(entity)
                     if dblp_id:
                         self.dblp_ids_dict[id] = dblp_id
@@ -373,7 +373,8 @@ class LinkByID():
                             break
                 if 'wikidata' in entity:
                     self.wikidata_in_file[entity['wikidata']] = id
-                if ':url' in entity:
+                    self.wikidata_linker.bibkg_id_linked_in_file[id] = entity['wikidata']
+                if 'url' in entity:
                     self.process_dblp_url(entity)
                 if 'isbn' in entity:
                     self.process_any(entity['isbn'], self.isbn_dict, id)
