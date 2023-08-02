@@ -136,7 +136,7 @@ if __name__ == "__main__":
     #Rutas de los archivos del proceso
     carpeta_externa = "D:\Memoria" 
     wikidata_person_name = "wikidata_person_4.json"
-    wikidata_scholar_name = "wikidata_else_4.json"
+    wikidata_scholar_name = "wikidata_scholar_4.json"
 
     wikidata_person_path = os.path.join(carpeta_externa, wikidata_person_name)
     wikidata_scholar_path = os.path.join(carpeta_externa, wikidata_scholar_name)

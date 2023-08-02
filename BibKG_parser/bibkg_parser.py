@@ -16,9 +16,6 @@ class BibKGParser():
     
     def __init__(self, parts_list):
         self.write_urls = parts_list
-        self.bibkg_path = "bibkg_copy.json"
-        self.input_url = "db/milledb/milleDB.dump"
-        self.folder = "db/JSON/"
         self.limit = 144000000
         self.bibkg_dictionary = {}
 
@@ -32,6 +29,17 @@ class BibKGParser():
                 id = entity['id']
                 self.entity_dict.setdefault(id, 0)
                 self.entity_dict[id] += 1
+
+    #setters
+
+    def set_folder(self, folder_path):
+        self.folder = folder_path
+
+    def set_bibkg_path(self, bibkg_path):
+        self.bibkg_path = bibkg_path
+
+    def set_input_url(self, input_url):
+        self.input_url = input_url
 
 
     #write_new_part: Escribe las entidades y propiedades no repetidas en el archivo JSON nuevo
@@ -270,11 +278,20 @@ class BibKGParser():
 if __name__ == "__main__":
     inicio = time.time()
 
+    #Definir cantidad de partes a ejecutar en parse_bibkg()
     parts_list = ["bibkg_part1.json", "bibkg_part2.json", "bibkg_part3.json", "bibkg_part4.json"]
     bibkg_parser = BibKGParser(parts_list)
 
-    #bibkg_parser.parse_bibkg()
-    bibkg_parser.merge_bibkg_parts()
+    #Insertar rutas deseadas
+    bibkg_parser.set_folder("db/JSON/")
+    bibkg_parser.set_input_url("db/milledb/milleDB.dump")
+    bibkg_parser.set_bibkg_path("bibkg.json")
+
+    #Parsear BibKG en cierta cantidad de partes (la cantidad depende de la cantidad de nombres de archivos definidos en la lista parts_list)
+    bibkg_parser.parse_bibkg()
+    #Unir todas las partes (si solo se creó 1 parte, no es necesario ejecutar esta función)
+    if len(parts_list) > 1:
+        bibkg_parser.merge_bibkg_parts()
 
     fin = time.time()
 

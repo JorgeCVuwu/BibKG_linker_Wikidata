@@ -81,7 +81,7 @@ class WikidataParser():
 
     def __init__(self):
         #Ubicación del dump de Wikidata
-        self.path = "db/gz/latest-all.json.gz"
+        #self.path = "db/gz/latest-all.json.gz"
         #Carpeta de datos
         self.folder = 'Wikidata_parser/data/'
 
@@ -120,15 +120,25 @@ class WikidataParser():
         self.count_scholar = 0
         self.count_other = 0
 
-        carpeta_externa = "D:\Memoria" 
+        # carpeta_externa = "D:\Memoria" 
 
-        self.wikidata_person_file = "wikidata_person_6.json"
-        self.wikidata_scholar_file = "wikidata_scholar_6.json"
-        self.wikidata_else_file = "wikidata_else_6.json"
+        # self.wikidata_person_file = "wikidata_person_6.json"
+        # self.wikidata_scholar_file = "wikidata_scholar_6.json"
+        # self.wikidata_else_file = "wikidata_else_6.json"
 
-        self.wikidata_person_url = os.path.join(carpeta_externa, self.wikidata_person_file)
-        self.wikidata_scholar_url = os.path.join(carpeta_externa, self.wikidata_scholar_file)
-        self.wikidata_else_url = os.path.join(carpeta_externa, self.wikidata_else_file)
+        # self.wikidata_person_url = os.path.join(carpeta_externa, self.wikidata_person_file)
+        # self.wikidata_scholar_url = os.path.join(carpeta_externa, self.wikidata_scholar_file)
+        # self.wikidata_else_url = os.path.join(carpeta_externa, self.wikidata_else_file)
+
+    #setters
+
+    def set_path(self, path):
+        self.path = path
+
+    def set_wikidata_files(self, wikidata_person_url, wikidata_scholar_url, wikidata_else_url):
+        self.wikidata_person_url = wikidata_person_url
+        self.wikidata_scholar_url = wikidata_scholar_url
+        self.wikidata_else_url = wikidata_else_url
 
     #filter_name: se filtran los nombres de una entidad
     #Si existe un nombre en inglés, se añade este. De lo contrario, se añaden todos los nombres en todos los idiomas
@@ -293,5 +303,23 @@ class WikidataParser():
 
 
 if __name__ == "__main__":
+
+
+
     wikidata_parser = WikidataParser()
+
+    #Ajustar rutas del archivo comprimido de Wikidata y los archivos resultantes en formato JSON
+    carpeta_externa = "D:\Memoria" 
+    path = "db/gz/latest-all.json.gz"
+    wikidata_person_file = "wikidata_person.json"
+    wikidata_scholar_file = "wikidata_scholar.json"
+    wikidata_else_file = "wikidata_else.json"
+
+    wikidata_person_url = os.path.join(carpeta_externa, wikidata_person_file)
+    wikidata_scholar_url = os.path.join(carpeta_externa, wikidata_scholar_file)
+    wikidata_else_url = os.path.join(carpeta_externa, wikidata_else_file)
+    wikidata_parser.set_path(path)
+    wikidata_parser.set_wikidata_files(wikidata_person_url, wikidata_scholar_url, wikidata_else_url)
+
+    #Ejecutar preprocesamiento de Wikidata
     wikidata_parser.parse_wikidata()
