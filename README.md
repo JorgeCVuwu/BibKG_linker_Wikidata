@@ -30,13 +30,20 @@ Wikidata Parser is a data preprocessor that allows Wikidata Linker to read Wikid
 To use this parser, you must follow the following steps:
 
 1. Download Wikidata dump [here](https://dumps.wikimedia.org/wikidatawiki/entities/). You must download the file called 'latest-all.json.gz'.
-2. Modify paths in the 'Wikidata_parser/wikidata_parser.py' file, if necessary.
+2. Modify paths in 'Wikidata_parser/wikidata_parser.py' file, if necessary.
 3. Run 'Wikidata_parser/wikidata_parser.py' file.
 
 ## Wikidata Linker
 
+Wikidata Linker is the tool that allows, from the JSON files previously obtained from BibKG and Wikidata, to compare entities from BibKG and Wikidata, and obtain CSV format files with all the links obtained as a result.
 
+To use this linker, you must follow the following steps:
+
+1. Get the JSON files from BibKG and Wikidata using the previously described methods, BibKG parser and Wikidata parser.
+2. Modify paths of BibKG and Wikidata files in 'Wikidata_Linker/wikidata_linker.py' file, according to the paths of those files in your directory..
+3. Run 'Wikidata_Linker/wikidata_linker.py' file.
 
 ## Data files
+
 
 
