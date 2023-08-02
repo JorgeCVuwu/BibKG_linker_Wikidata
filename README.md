@@ -45,5 +45,9 @@ To use this linker, you must follow the following steps:
 
 ## Data files
 
+In 'data/wikidata_linker' folder you can find the following files that contain information about the obtained links:
 
+1. id-links.csv: The link information obtained exclusively by the ID linking method (i.e., linking BibKG entities with Wikidata entities by comparing the equivalent external IDs between them). Each row represents a link between BibKG and Wikidata, with the IDs of both entities, together with the ID(s) to which they were linked.
+2. linked-entities.csv: The information of the links obtained through all types of links can be found. Each row represents a link, with the IDs of the linked BibKG and Wikidata entities, along with the DBLP ID (if found) and each linking method related to the link.
+3. repeated_journal_links.json: This file contains all BibKG entities of journals linked to some Wikidata entity, containing inside all related Wikidata entities. This, because there are entities that exist more than once in BibKG.
 
