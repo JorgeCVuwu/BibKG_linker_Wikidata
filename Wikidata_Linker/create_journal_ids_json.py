@@ -1,8 +1,8 @@
 import csv
 import json
 
-json_file = 'db/JSON/bibkg.json'
-archivo_csv = 'data/wikidata_linker/linked-entities-5.csv'
+#json_file = 'db/JSON/bibkg.json'
+archivo_csv = 'data/wikidata_linker/linked-entities.csv'
 journals_json_path = 'data/wikidata_linker/repeated_journal_links.json'
 count_linked_corr = 0
 

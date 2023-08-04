@@ -1,9 +1,9 @@
 import os
 import csv
 import time
-from Link_by_id.link_by_id_2 import LinkByID
+from Link_by_id.link_by_id import LinkByID
 from Link_by_parameters import link_by_parameters
-from Link_by_comparisons import link_by_comparisons_2
+from Link_by_comparisons import link_by_comparisons
 # from Link_by_comparisons import link_by_comparisons
 
 def get_strings_with_prefix(lista, prefix):
@@ -18,9 +18,9 @@ class WikidataLinker:
         self.bibkg_path = bibkg_path
         self.wikidata_person_path = wikidata_person_path
         self.wikidata_scholar_path = wikidata_scholar_path
-        self.link_csv_path = "data/wikidata_linker/linked-entities-6.csv"
-        self.link_id_csv_path = "data/wikidata_linker/linked-id-entities-6.csv"
-        self.metadata_path = "data/wikidata_linker/metadata-6.csv"
+        self.link_csv_path = "data/wikidata_linker/linked-entities.csv"
+        self.link_id_csv_path = "data/wikidata_linker/linked-id-entities.csv"
+        self.metadata_path = "data/wikidata_linker/metadata.csv"
 
         #contadores
 
@@ -104,19 +104,6 @@ class WikidataLinker:
             for fila in data:
                 writer.writerow(fila)
 
-    # def write_id_links_csv(self):
-    #     with open(self.link_id_csv_path, mode='w', newline='') as archivo_csv:
-    #         writer = csv.writer(archivo_csv)
-    #         for fila in self.csv_data:
-    #             bibkg_id = fila[0]
-    #             link_type = fila[2]
-    #             if bibkg_id not in self.forbidden_links_dict:
-    #                 writer.writerow(fila)
-
-
-
-
-
     #funciones link: enlazan entidades de BibKG con Wikidata (añadiéndolas a la lista que creará el CSV)
     
     #link_by_id: enlaza entidades mediante IDs (comparando las propiedades equivalentes que hacen referencia a IDs de distintas fuentes)
@@ -133,7 +120,7 @@ class WikidataLinker:
     #link_by_comparisons: enlaza entidades mediante comparación de propiedades con el mismo valor (descartando o asegurando enlaces)
     #no se consideran a las propiedades de IDs en este paso (se consideraron en link_by_id)
     def link_by_comparisons(self):
-        id_linker = link_by_comparisons_2.LinkByComparisons(self)
+        id_linker = link_by_comparisons.LinkByComparisons(self)
         return id_linker.link_by_comparisons()
         #link_by_comparisons.link_by_comparisons(self)
 
@@ -149,7 +136,7 @@ if __name__ == "__main__":
     #Rutas de los archivos del proceso
     carpeta_externa = "D:\Memoria" 
     wikidata_person_name = "wikidata_person_4.json"
-    wikidata_scholar_name = "wikidata_else_4.json"
+    wikidata_scholar_name = "wikidata_scholar_4.json"
 
     wikidata_person_path = os.path.join(carpeta_externa, wikidata_person_name)
     wikidata_scholar_path = os.path.join(carpeta_externa, wikidata_scholar_name)

@@ -83,6 +83,8 @@ class LinkByParameters():
         self.count_fordidden_publication = 0
         self.count_fordidden_journal = 0
 
+        self.count_bad_author_link = 0
+
         self.count_wikidata_forbidden_publication = 0
         self.count_wikidata_forbidden_author = 0
 
@@ -119,6 +121,7 @@ class LinkByParameters():
         #Si una entidad es relacionada con otra entidad a la ya asociada, se elimina la asociación
         elif writed_links_dict[bibkg_id] != wikidata_id:
             #Si el elemento no está escrito por el enlazamiento por IDs, pasa a la lista prohibida y elimina el enlace actual
+            self.count_bad_author_link += 1
             if bibkg_id not in self.wikidata_linker.writed_id_entities:
                 forbidden_links_dict[bibkg_id] = True
                 #del writed_links_dict[bibkg_id]
@@ -432,6 +435,8 @@ class LinkByParameters():
 
         print(self.count_publication_relations)
         print(self.count_publication_aliases_relations)
+
+        print(self.count_bad_author_link)
 
         print("Total de relaciones con orden y nombre de autores: {}".format(self.count_order_name_author_links))
         print("Total de relaciones con orden y sin nombre de autores: (no se enlazaron estos casos): {}".format(self.count_order_author_links))
