@@ -15,7 +15,7 @@ This project uses three main methods that allow obtaining links between BibKG an
 
 ## BibKG Parser
 
-BiG Parser is a data parser that allows you to create a new BibKG file in JSON format, from the dump that has the MillenniumDB format. The resulting JSON file makes it easier to work with BibKG data when you want to work with a large amount of data.
+BibKG Parser is a data parser that allows you to create a new BibKG file in JSON format, from the dump that has the MillenniumDB format. The resulting JSON file makes it easier to work with BibKG data when you want to work with a large amount of data.
 
 To use this parser, you must follow the following steps:
 
